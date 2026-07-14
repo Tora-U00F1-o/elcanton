@@ -269,6 +269,32 @@
           "textAlign": "center",
           "fontFamily": "Inter",
           "fill": "#ffffff"
+        },
+        {
+          "type": "rectangle",
+          "id": "btnGoogleTop",
+          "x": 95,
+          "y": 86,
+          "width": 200,
+          "height": 40,
+          "fill": "#ffffff",
+          "radius": 20,
+          "stroke": "#06b6d4",
+          "strokeWidth": 1.5
+        },
+        {
+          "type": "text",
+          "id": "txtGoogleTop",
+          "x": 95,
+          "y": 96,
+          "width": 200,
+          "height": 20,
+          "content": "🚀 Abrir en Google Maps",
+          "fontSize": 12,
+          "fontWeight": "bold",
+          "textAlign": "center",
+          "fontFamily": "Inter",
+          "fill": "#0f172a"
         }
       ]
     }

@@ -93,10 +93,14 @@ function initMap() {
   const mapElement = document.getElementById('map');
   if (!mapElement) return; // Exit if not on map page
 
-  const posA = CONFIG.puntos.inicioFijo;
+  const posFixedA = CONFIG.puntos.inicioFijo;
   const posB1 = CONFIG.puntos.paradaIntermedia1;
   const posB2 = CONFIG.puntos.paradaIntermedia2;
   const posC = CONFIG.puntos.destinoFinal;
+
+  // Read URL parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const routeType = urlParams.get('route');
 
   // Initialize Leaflet map centered midway
   map = L.map('map').setView([43.333, -5.134], 13);
@@ -104,8 +108,13 @@ function initMap() {
   // Setup Tile layers dynamically based on theme
   updateMapTiles();
 
+  let startLat = posFixedA.lat;
+  let startLng = posFixedA.lng;
+  let startName = posFixedA.nombre;
+  let gpsOrigin = null;
+
   // Create customized Marker A
-  const markerA = L.marker([posA.lat, posA.lng], {
+  const markerA = L.marker([startLat, startLng], {
     icon: L.divIcon({
       className: 'custom-div-icon',
       html: '<div class="marker-pin-wrapper" style="background:#2563eb;"><div class="marker-inner-content">A</div></div>',
@@ -114,7 +123,7 @@ function initMap() {
       popupAnchor: [0, -30]
     })
   }).addTo(map);
-  markerA.bindPopup(`<h4>Origen: Cangas de Onís</h4><p>${posA.nombre}</p>`);
+  markerA.bindPopup(`<h4>Origen: Cangas de Onís</h4><p>${startName}</p>`);
 
   // Create customized Marker B1 (checkpoint 1)
   const markerB1 = L.marker([posB1.lat, posB1.lng], {
@@ -152,22 +161,74 @@ function initMap() {
   }).addTo(map);
   markerC.bindPopup(`<h4>Destino: Casa de Aldea El Cantón</h4><p>${posC.nombre}</p>`);
 
-  // Draw the route line joining points A -> B1 -> B2 -> C
-  const routeCoords = [
-    [posA.lat, posA.lng],
-    [posB1.lat, posB1.lng],
-    [posB2.lat, posB2.lng],
-    [posC.lat, posC.lng]
-  ];
-  const polyline = L.polyline(routeCoords, {
-    color: '#0ea5e9',
-    weight: 5,
-    opacity: 0.8,
-    lineJoin: 'round'
-  }).addTo(map);
+  let polyline = null;
+  function drawRoute(originLat, originLng) {
+    if (polyline) {
+      map.removeLayer(polyline);
+    }
+    const routeCoords = [
+      [originLat, originLng],
+      [posB1.lat, posB1.lng],
+      [posB2.lat, posB2.lng],
+      [posC.lat, posC.lng]
+    ];
+    polyline = L.polyline(routeCoords, {
+      color: '#0ea5e9',
+      weight: 5,
+      opacity: 0.8,
+      lineJoin: 'round'
+    }).addTo(map);
 
-  // Auto-fit viewport bounds to show entire route
-  map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+    // Auto-fit viewport bounds to show entire route
+    map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+  }
+
+  // Draw initial route
+  drawRoute(startLat, startLng);
+
+  // If GPS route was requested, query GPS immediately
+  if (routeType === 'gps') {
+    markerA.bindPopup('<h4>Localizando origen...</h4>').openPopup();
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const uLat = position.coords.latitude;
+        const uLng = position.coords.longitude;
+        gpsOrigin = { lat: uLat, lng: uLng };
+        
+        // Update Marker A position to user GPS location
+        markerA.setLatLng([uLat, uLng]);
+        markerA.bindPopup('<h4>Origen: Tu ubicación actual</h4>').openPopup();
+        
+        // Redraw route line starting from GPS position
+        drawRoute(uLat, uLng);
+      },
+      (error) => {
+        console.error('GPS error, falling back to Cangas de Onís:', error);
+        alert('No pudimos acceder a tu ubicación actual. La ruta comenzará desde Cangas de Onís por defecto.');
+        markerA.bindPopup(`<h4>Origen: Cangas de Onís</h4><p>${startName}</p>`);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  }
+
+  // Hook up Top Google Maps button
+  const btnOpenGoogleMaps = document.getElementById('btnOpenGoogleMaps');
+  if (btnOpenGoogleMaps) {
+    btnOpenGoogleMaps.addEventListener('click', () => {
+      let originQuery = `${posFixedA.lat},${posFixedA.lng}`;
+      if (routeType === 'gps') {
+        if (gpsOrigin) {
+          originQuery = `${gpsOrigin.lat},${gpsOrigin.lng}`;
+        } else {
+          // GPS requested but not loaded yet (or failed), request it on the fly or warn
+          alert('Tu ubicación GPS aún se está cargando. Abriendo con origen en Cangas de Onís...');
+        }
+      }
+      
+      const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${originQuery}&waypoints=${posB1.lat},${posB1.lng}%7C${posB2.lat},${posB2.lng}&destination=Casa+de+Aldea+El+Cantón,+Lugar+Tornin,+36,+33557+Tornín,+Asturias&travelmode=driving`;
+      window.open(mapsUrl, '_blank');
+    });
+  }
 
   // Floating Checkpoint HUD Setup
   const hud = document.getElementById('checkpointHUD');
