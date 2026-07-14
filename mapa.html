@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ruta Guided Web - Mapa</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  
+  <!-- Global Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <h1 class="app-title" id="appHeaderTitle">
+        <svg class="header-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+        Ruta Guiada Web
+      </h1>
+      <!-- Back button to return to dashboard -->
+      <a href="index.html" style="text-decoration: none;" id="btnHeaderBack" title="Volver al Dashboard">
+        <svg class="header-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+        </svg>
+      </a>
+    </header>
+
+    <!-- Map View Container -->
+    <div class="map-view-container">
+      <!-- Leaflet Map -->
+      <div id="map"></div>
+
+      <!-- Floating HUD Card (Punto de control checkpoint details) -->
+      <div class="checkpoint-popup-hud" id="checkpointHUD">
+        <div class="hud-img-container">
+          <img src="" alt="Punto de control" class="hud-image" id="hudImg">
+        </div>
+        <div class="hud-text-container">
+          <h4 class="hud-title" id="hudTitle">Punto de Control</h4>
+          <p class="hud-desc" id="hudDesc">Descripción de la parada</p>
+        </div>
+      </div>
+
+      <!-- Map Overlay controls -->
+      <div class="map-actions">
+        <button class="map-btn map-btn-back" id="btnMapBack">
+          ← Volver
+        </button>
+        <button class="map-btn map-btn-gps" id="btnRecenterGPS">
+          📍 Centrar GPS
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- App Scripts -->
+  <script src="js/config.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ruta Guided Web - Dashboard</title>
+  <!-- Global Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Blurred street background for premium feel -->
+  <div class="bg-blur-overlay"></div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <h1 class="app-title" id="appHeaderTitle">
+        <svg class="header-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+        Ruta Guiada Web
+      </h1>
+      <!-- Map icon representing view route directly -->
+      <a href="mapa.html?route=fixed" style="text-decoration: none;" id="btnHeaderMap" title="Ver mapa">
+        <svg class="header-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/>
+        </svg>
+      </a>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard-content">
+      <div class="card-main">
+        <!-- Main Actions grid -->
+        <div class="route-grid">
+          <!-- Button 1: GPS -->
+          <div class="btn-card" id="btnUseGPS" role="button" tabindex="0">
+            <span class="btn-card-icon">📡</span>
+            <span class="btn-card-text">Usar mi ubicación actual</span>
+          </div>
+
+          <!-- Button 2: Fixed Route -->
+          <a href="mapa.html?route=fixed" class="btn-card" id="btnFixedRoute">
+            <span class="btn-card-icon">🗺️</span>
+            <span class="btn-card-text">Ruta fija</span>
+          </a>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Utility Links -->
+        <section class="links-section">
+          <h2 class="links-title">Enlaces de transporte</h2>
+          <a href="#" target="_blank" class="btn-link-action" id="linkAlsa">Horarios Alsa</a>
+          <a href="#" target="_blank" class="btn-link-action" id="linkTua">Autobuses Oviedo</a>
+          <a href="#" target="_blank" class="btn-link-action" id="linkTrafico">Tráfico Asturias</a>
+        </section>
+      </div>
+
+      <!-- Theme Switcher (Preserved at bottom right/center) -->
+      <div class="theme-toggle-container">
+        <div class="theme-switch-label" id="themeToggler" role="button" tabindex="0">
+          <span class="theme-icon">☀️</span>
+          <span>Modo Oscuro</span>
+          <div class="switch-inner">
+            <div class="switch-circle"></div>
+          </div>
+          <span class="theme-icon">🌙</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- Elegant GPS Error Modal -->
+    <div class="elegant-modal-overlay" id="gpsErrorModal">
+      <div class="elegant-modal">
+        <div class="modal-icon">⚠️</div>
+        <h3 class="modal-title">GPS no disponible</h3>
+        <p class="modal-desc">
+          No hemos podido acceder a tu ubicación actual. Para continuar, por favor activa los permisos de ubicación o utiliza la <strong>Ruta fija</strong> preestablecida.
+        </p>
+        <button class="modal-btn-close" id="btnCloseModal">Entendido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Javascript Scripts -->
+  <script src="js/config.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
