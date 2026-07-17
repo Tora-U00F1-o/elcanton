@@ -366,7 +366,7 @@ body.dark-mode .switch-circle {
 /* Floating HUD Card representing control checkpoint */
 .checkpoint-popup-hud {
   position: absolute;
-  bottom: 5.625rem; /* ~90px */
+  bottom: 1.5rem;
   left: 1rem;
   right: 1rem;
   z-index: 50;
@@ -424,7 +424,7 @@ body.dark-mode .switch-circle {
 
 .hud-img-container {
   width: 100%;
-  height: 22dvh;
+  height: 28dvh;
   border-radius: var(--radius-sm);
   overflow: hidden;
   position: relative;
@@ -517,13 +517,20 @@ body.dark-mode .map-btn-gps {
   transform: translateY(-0.125rem);
 }
 
-/* Centered Top Floating Google Maps Button */
-.map-btn-top-google {
+/* Stacked Floating Top Controls on the right */
+.map-top-controls {
   position: absolute;
-  top: 0.5em; /* Anchored directly below the sticky header */
-  left: 50%;
-  transform: translateX(-50%);
+  top: 0.75rem;
+  right: 0.75rem;
   z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.map-btn-top {
+  pointer-events: auto;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -532,7 +539,7 @@ body.dark-mode .map-btn-gps {
   backdrop-filter: blur(0.75rem);
   -webkit-backdrop-filter: blur(0.75rem);
   color: var(--text-primary);
-  border: 0.09375rem solid var(--accent-color);
+  border: 0.09375rem solid var(--border-color);
   border-radius: 9999px;
   font-family: var(--font-body);
   font-size: 0.8125rem; /* 13px */
@@ -541,13 +548,55 @@ body.dark-mode .map-btn-gps {
   box-shadow: var(--shadow-md);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   min-height: 2.5rem;
+  width: max-content;
+  align-self: flex-end;
 }
 
-.map-btn-top-google:hover, .map-btn-top-google:active {
+#btnOpenGoogleMaps {
+  border-color: var(--accent-color);
+}
+
+body.dark-mode .map-btn-top {
+  border-color: #334155;
+}
+
+body.dark-mode #btnOpenGoogleMaps {
+  border-color: var(--accent-color);
+}
+
+.map-btn-top:hover, .map-btn-top:active {
   background-color: var(--accent-color);
   color: #ffffff;
-  transform: translateX(-50%) translateY(-0.125rem);
-  box-shadow: 0 0.5rem 1.25rem rgba(14, 165, 233, 0.4);
+  border-color: var(--accent-color);
+  transform: translateY(-0.125rem);
+}
+
+.map-btn-top:hover .maps-icon {
+  fill: #ffffff;
+}
+
+.map-btn-top:hover .gps-icon {
+  stroke: #ffffff;
+}
+
+/* Icons styling inside top buttons */
+.btn-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+  transition: fill 0.2s ease, stroke 0.2s ease;
+}
+
+.maps-icon {
+  fill: var(--accent-color);
+}
+
+.gps-icon {
+  stroke: var(--text-primary);
+}
+
+body.dark-mode .gps-icon {
+  stroke: var(--text-primary);
 }
 
 /* Custom leaflet marker styling - Relative sizing */

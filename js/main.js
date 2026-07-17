@@ -249,6 +249,16 @@ function initMap() {
         activeMarker = marker;
         updateMarkerIcon(marker, '#facc15'); // Yellow
       }
+
+      // Fly to marker coordinates with smooth zoom, offset to top 40% of screen to avoid HUD card overlap
+      const targetZoom = 17;
+      const targetPoint = map.project(marker.getLatLng(), targetZoom);
+      const mapHeight = map.getSize().y;
+      const offsetY = mapHeight * 0.10; // offset center downward so marker appears at 40% from top
+      const newCenterPoint = L.point(targetPoint.x, targetPoint.y + offsetY);
+      const newCenterLatLng = map.unproject(newCenterPoint, targetZoom);
+
+      map.flyTo(newCenterLatLng, targetZoom, { animate: true, duration: 1.0 });
     });
   });
 
