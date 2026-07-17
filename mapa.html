@@ -20,7 +20,7 @@
         <svg class="header-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
         </svg>
-        Ruta Guiada Web
+        CA El Cantón Tornin
       </h1>
       <!-- Back button to return to dashboard -->
       <a href="index.html" style="text-decoration: none;" id="btnHeaderBack" title="Volver al Dashboard">
@@ -40,8 +40,16 @@
       <!-- Leaflet Map -->
       <div id="map"></div>
 
+      <!-- Floating Tip Banner -->
+      <div class="map-tip-banner" id="mapTipBanner">
+        <span class="tip-icon">💡</span>
+        <span class="tip-text">Pulsa sobre los puntos de interés para obtener indicaciones de la ruta.</span>
+        <button class="tip-close-btn" id="btnCloseTip" aria-label="Cerrar tip">&times;</button>
+      </div>
+
       <!-- Floating HUD Card (Punto de control checkpoint details) -->
       <div class="checkpoint-popup-hud" id="checkpointHUD">
+        <button class="hud-close-btn" id="btnCloseHUD" aria-label="Cerrar">&times;</button>
         <div class="hud-img-container">
           <img src="" alt="Punto de control" class="hud-image" id="hudImg">
         </div>

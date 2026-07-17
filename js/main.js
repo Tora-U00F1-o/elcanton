@@ -17,6 +17,52 @@ function initTheme() {
   }
 }
 
+// Helper to get all points ordered: inicioFijo -> pto1..ptoN -> destinoFinal
+function getOrderedPuntos() {
+  const puntos = CONFIG.puntos;
+  const list = [];
+  
+  if (puntos.inicioFijo) {
+    list.push(puntos.inicioFijo);
+  }
+  
+  // Sort keys that start with "pto" numerically
+  const ptoKeys = Object.keys(puntos).filter(k => k.startsWith('pto'));
+  ptoKeys.sort((a, b) => {
+    const numA = parseInt(a.replace('pto', ''), 10);
+    const numB = parseInt(b.replace('pto', ''), 10);
+    return numA - numB;
+  });
+  
+  ptoKeys.forEach(k => {
+    list.push(puntos[k]);
+  });
+  
+  if (puntos.destinoFinal) {
+    list.push(puntos.destinoFinal);
+  }
+  
+  return list;
+}
+
+// Helper to generate Google Maps URL dynamically
+function getGoogleMapsUrl(originLat, originLng) {
+  const points = getOrderedPuntos();
+  if (points.length === 0) return '';
+  
+  const destPoint = points[points.length - 1];
+  const destinationQuery = `${destPoint.lat},${destPoint.lng}`;
+  
+  // Waypoints are all intermediate points
+  const waypoints = [];
+  for (let i = 1; i < points.length - 1; i++) {
+    waypoints.push(`${points[i].lat},${points[i].lng}`);
+  }
+  
+  const waypointsStr = waypoints.join('|');
+  return `https://www.google.com/maps/dir/?api=1&origin=${originLat},${originLng}&waypoints=${encodeURIComponent(waypointsStr)}&destination=${encodeURIComponent(destinationQuery)}&travelmode=driving`;
+}
+
 // Dashboard Page Controller
 function initDashboard() {
   const btnUseGPS = document.getElementById('btnUseGPS');
@@ -46,15 +92,8 @@ function initDashboard() {
         const uLat = position.coords.latitude;
         const uLng = position.coords.longitude;
         
-        // Extract route configurations from config.js
-        const w1Lat = CONFIG.puntos.paradaIntermedia1.lat;
-        const w1Lng = CONFIG.puntos.paradaIntermedia1.lng;
-        const w2Lat = CONFIG.puntos.paradaIntermedia2.lat;
-        const w2Lng = CONFIG.puntos.paradaIntermedia2.lng;
-        
-        // Multi-point driving routing URL for Google Maps with address destination
-        const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${uLat},${uLng}&waypoints=${w1Lat},${w1Lng}%7C${w2Lat},${w2Lng}&destination=Casa+de+Aldea+El+Cantón,+Lugar+Tornin,+36,+33557+Tornín,+Asturias&travelmode=driving`;
-        
+        // Dynamic multi-point driving routing URL for Google Maps
+        const mapsUrl = getGoogleMapsUrl(uLat, uLng);
         window.open(mapsUrl, '_blank');
       },
       (error) => {
@@ -93,10 +132,10 @@ function initMap() {
   const mapElement = document.getElementById('map');
   if (!mapElement) return; // Exit if not on map page
 
-  const posFixedA = CONFIG.puntos.inicioFijo;
-  const posB1 = CONFIG.puntos.paradaIntermedia1;
-  const posB2 = CONFIG.puntos.paradaIntermedia2;
-  const posC = CONFIG.puntos.destinoFinal;
+  const orderedPuntos = getOrderedPuntos();
+  if (orderedPuntos.length === 0) return;
+
+  const posFixedA = orderedPuntos[0];
 
   // Read URL parameters
   const urlParams = new URLSearchParams(window.location.search);
@@ -110,94 +149,173 @@ function initMap() {
 
   let startLat = posFixedA.lat;
   let startLng = posFixedA.lng;
-  let startName = posFixedA.nombre;
   let gpsOrigin = null;
 
-  // Create customized Marker A
-  const markerA = L.marker([startLat, startLng], {
-    icon: L.divIcon({
+  // Floating Checkpoint HUD Setup
+  const hud = document.getElementById('checkpointHUD');
+  const hudImg = document.getElementById('hudImg');
+  const hudTitle = document.getElementById('hudTitle');
+  const hudDesc = document.getElementById('hudDesc');
+  const btnCloseHUD = document.getElementById('btnCloseHUD');
+
+  if (btnCloseHUD) {
+    btnCloseHUD.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (hud) {
+        hud.style.display = 'none';
+      }
+      if (activeMarker) {
+        updateMarkerIcon(activeMarker, activeMarker.options.originalColor);
+        activeMarker = null;
+      }
+    });
+  }
+
+  function loadCheckpointHUD(point) {
+    if (!point || !hud || !hudImg || !hudTitle || !hudDesc) return;
+    
+    const foto = point.fotoUrl || point.imagen;
+    const title = point.titulo || point.nombre || 'Punto';
+    const desc = point.indicacion || point.descripcion || '';
+    
+    if (foto) {
+      hudImg.src = foto;
+      hudImg.style.display = 'block';
+    } else {
+      hudImg.style.display = 'none';
+    }
+    
+    hudTitle.textContent = title;
+    hudDesc.textContent = desc;
+    
+    hud.style.display = 'flex';
+    hud.style.animation = 'none';
+    void hud.offsetWidth; // trigger reflow
+    hud.style.animation = 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+  }
+
+  let activeMarker = null;
+
+  function updateMarkerIcon(m, color) {
+    m.setIcon(L.divIcon({
       className: 'custom-div-icon',
-      html: '<div class="marker-pin-wrapper" style="background:#2563eb;"><div class="marker-inner-content">A</div></div>',
+      html: `<div class="marker-pin-wrapper" style="background:${color};"><div class="marker-inner-content">${m.options.myLabel}</div></div>`,
       iconSize: [32, 32],
       iconAnchor: [16, 32],
       popupAnchor: [0, -30]
-    })
-  }).addTo(map);
-  markerA.bindPopup(`<h4>Origen: Cangas de Onís</h4><p>${startName}</p>`);
+    }));
+  }
 
-  // Create customized Marker B1 (checkpoint 1)
-  const markerB1 = L.marker([posB1.lat, posB1.lng], {
-    icon: L.divIcon({
-      className: 'custom-div-icon checkpoint-icon',
-      html: '<div class="marker-pin-wrapper"><div class="marker-inner-content">B1</div></div>',
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -30]
-    })
-  }).addTo(map);
-  markerB1.bindPopup(`<h4>Punto de Control 1</h4><p>${posB1.nombre}</p>`);
+  // Render all points dynamically
+  orderedPuntos.forEach((point, index) => {
+    let markerColor = '#0ea5e9'; // default cyan/blue for checkpoints
+    let markerLabel = index; // numbers: 1, 2, 3...
+    
+    if (index === 0) {
+      markerColor = '#2563eb'; // blue for start (A)
+      markerLabel = 'A';
+    } else if (index === orderedPuntos.length - 1) {
+      markerColor = '#0ea5e9'; // same blue/cyan as checkpoints
+      markerLabel = '🏠';
+    }
+    
+    const marker = L.marker([point.lat, point.lng], {
+      icon: L.divIcon({
+        className: 'custom-div-icon',
+        html: `<div class="marker-pin-wrapper" style="background:${markerColor};"><div class="marker-inner-content">${markerLabel}</div></div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -30]
+      })
+    }).addTo(map);
 
-  // Create customized Marker B2 (checkpoint 2)
-  const markerB2 = L.marker([posB2.lat, posB2.lng], {
-    icon: L.divIcon({
-      className: 'custom-div-icon checkpoint-icon',
-      html: '<div class="marker-pin-wrapper" style="background:#06b6d4;"><div class="marker-inner-content">B2</div></div>',
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -30]
-    })
-  }).addTo(map);
-  markerB2.bindPopup(`<h4>Punto de Control 2</h4><p>${posB2.nombre}</p>`);
+    marker.options.myLabel = markerLabel;
+    marker.options.originalColor = markerColor;
+    marker.options.isCheckpoint = (index > 0);
 
-  // Create customized Marker C (destination)
-  const markerC = L.marker([posC.lat, posC.lng], {
-    icon: L.divIcon({
-      className: 'custom-div-icon',
-      html: '<div class="marker-pin-wrapper" style="background:#ef4444;"><div class="marker-inner-content">C</div></div>',
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -30]
-    })
-  }).addTo(map);
-  markerC.bindPopup(`<h4>Destino: Casa de Aldea El Cantón</h4><p>${posC.nombre}</p>`);
+    if (index === 0) {
+      startMarker = marker;
+      marker.bindPopup(`<h4>Origen: ${point.nombre || 'Cangas de Onís'}</h4>`);
+    }
+
+    // Load HUD when clicking a marker
+    marker.on('click', () => {
+      loadCheckpointHUD(point);
+      
+      if (marker.options.isCheckpoint) {
+        if (activeMarker && activeMarker !== marker) {
+          updateMarkerIcon(activeMarker, activeMarker.options.originalColor);
+        }
+        activeMarker = marker;
+        updateMarkerIcon(marker, '#facc15'); // Yellow
+      }
+    });
+  });
 
   let polyline = null;
-  function drawRoute(originLat, originLng) {
+
+  function drawStraightRoute(points) {
     if (polyline) {
       map.removeLayer(polyline);
     }
-    const routeCoords = [
-      [originLat, originLng],
-      [posB1.lat, posB1.lng],
-      [posB2.lat, posB2.lng],
-      [posC.lat, posC.lng]
-    ];
+    const routeCoords = points.map(p => [p.lat, p.lng]);
     polyline = L.polyline(routeCoords, {
       color: '#0ea5e9',
       weight: 5,
-      opacity: 0.8,
+      opacity: 0.5,
       lineJoin: 'round'
     }).addTo(map);
-
-    // Auto-fit viewport bounds to show entire route
     map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+  }
+
+  function drawRoute(originLat, originLng) {
+    const points = [{ lat: originLat, lng: originLng }, ...orderedPuntos.slice(1)];
+    const coordsString = points.map(p => `${p.lng},${p.lat}`).join(';');
+    const osrmUrl = `https://router.project-osrm.org/route/v1/foot/${coordsString}?overview=full&geometries=geojson`;
+
+    fetch(osrmUrl)
+      .then(response => response.json())
+      .then(data => {
+        if (data.code === 'Ok' && data.routes && data.routes[0]) {
+          if (polyline) {
+            map.removeLayer(polyline);
+          }
+          // OSRM returns coordinates as [longitude, latitude], Leaflet needs [latitude, longitude]
+          const routeCoords = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+          
+          polyline = L.polyline(routeCoords, {
+            color: '#0ea5e9',
+            weight: 5,
+            opacity: 0.5,
+            lineJoin: 'round'
+          }).addTo(map);
+          
+          map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+        } else {
+          drawStraightRoute(points);
+        }
+      })
+      .catch(err => {
+        console.warn('OSRM routing failed, falling back to straight lines:', err);
+        drawStraightRoute(points);
+      });
   }
 
   // Draw initial route
   drawRoute(startLat, startLng);
 
   // If GPS route was requested, query GPS immediately
-  if (routeType === 'gps') {
-    markerA.bindPopup('<h4>Localizando origen...</h4>').openPopup();
+  if (routeType === 'gps' && startMarker) {
+    startMarker.bindPopup('<h4>Localizando origen...</h4>').openPopup();
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const uLat = position.coords.latitude;
         const uLng = position.coords.longitude;
         gpsOrigin = { lat: uLat, lng: uLng };
         
-        // Update Marker A position to user GPS location
-        markerA.setLatLng([uLat, uLng]);
-        markerA.bindPopup('<h4>Origen: Tu ubicación actual</h4>').openPopup();
+        // Update Start Marker position to user GPS location
+        startMarker.setLatLng([uLat, uLng]);
+        startMarker.bindPopup('<h4>Origen: Tu ubicación actual</h4>').openPopup();
         
         // Redraw route line starting from GPS position
         drawRoute(uLat, uLng);
@@ -205,7 +323,7 @@ function initMap() {
       (error) => {
         console.error('GPS error, falling back to Cangas de Onís:', error);
         alert('No pudimos acceder a tu ubicación actual. La ruta comenzará desde Cangas de Onís por defecto.');
-        markerA.bindPopup(`<h4>Origen: Cangas de Onís</h4><p>${startName}</p>`);
+        startMarker.bindPopup(`<h4>Origen: ${posFixedA.nombre || 'Cangas de Onís'}</h4>`);
       },
       { enableHighAccuracy: true, timeout: 8000 }
     );
@@ -215,56 +333,35 @@ function initMap() {
   const btnOpenGoogleMaps = document.getElementById('btnOpenGoogleMaps');
   if (btnOpenGoogleMaps) {
     btnOpenGoogleMaps.addEventListener('click', () => {
-      let originQuery = `${posFixedA.lat},${posFixedA.lng}`;
+      let originLat = posFixedA.lat;
+      let originLng = posFixedA.lng;
       if (routeType === 'gps') {
         if (gpsOrigin) {
-          originQuery = `${gpsOrigin.lat},${gpsOrigin.lng}`;
+          originLat = gpsOrigin.lat;
+          originLng = gpsOrigin.lng;
         } else {
-          // GPS requested but not loaded yet (or failed), request it on the fly or warn
           alert('Tu ubicación GPS aún se está cargando. Abriendo con origen en Cangas de Onís...');
         }
       }
       
-      const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${originQuery}&waypoints=${posB1.lat},${posB1.lng}%7C${posB2.lat},${posB2.lng}&destination=Casa+de+Aldea+El+Cantón,+Lugar+Tornin,+36,+33557+Tornín,+Asturias&travelmode=driving`;
+      const mapsUrl = getGoogleMapsUrl(originLat, originLng);
       window.open(mapsUrl, '_blank');
     });
   }
 
-  // Floating Checkpoint HUD Setup
-  const hud = document.getElementById('checkpointHUD');
-  const hudImg = document.getElementById('hudImg');
-  const hudTitle = document.getElementById('hudTitle');
-  const hudDesc = document.getElementById('hudDesc');
-
-  // Load the first checkpoint data on start
-  function loadCheckpointHUD(index) {
-    const cpData = CONFIG.checkpoints[index];
-    if (cpData && hud && hudImg && hudTitle && hudDesc) {
-      hudImg.src = cpData.fotoUrl;
-      hudTitle.textContent = cpData.titulo;
-      hudDesc.textContent = cpData.descripcion;
-      
-      hud.style.display = 'flex';
-      hud.style.animation = 'none';
-      void hud.offsetWidth; // trigger reflow
-      hud.style.animation = 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+  // Tip banner close handling
+  const mapTip = document.getElementById('mapTipBanner');
+  const btnCloseTip = document.getElementById('btnCloseTip');
+  if (mapTip && btnCloseTip) {
+    if (localStorage.getItem('hideMapTip') === 'true') {
+      mapTip.style.display = 'none';
+    } else {
+      btnCloseTip.addEventListener('click', () => {
+        mapTip.style.display = 'none';
+        localStorage.setItem('hideMapTip', 'true');
+      });
     }
   }
-
-  // Load CP1 on start
-  setTimeout(() => {
-    loadCheckpointHUD(0);
-  }, 500);
-
-  // Click on checkpoint marker B1 shows HUD for B1
-  markerB1.on('click', () => {
-    loadCheckpointHUD(0);
-  });
-
-  // Click on checkpoint marker B2 shows HUD for B2
-  markerB2.on('click', () => {
-    loadCheckpointHUD(1);
-  });
 
   // Action Buttons
   const btnMapBack = document.getElementById('btnMapBack');
@@ -340,9 +437,24 @@ function updateMapTiles() {
   }).addTo(map);
 }
 
+// Set a random background image from the portada folder
+function initBackground() {
+  const overlay = document.querySelector('.bg-blur-overlay');
+  if (!overlay) return;
+
+  const images = [
+    'assets/images/portada/portada1.png',
+    'assets/images/portada/portada2.png'
+  ];
+
+  const randomImage = images[Math.floor(Math.random() * images.length)];
+  overlay.style.backgroundImage = `url('${randomImage}')`;
+}
+
 // Bootstrap Initialization
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
+  initBackground();
   initDashboard();
   initMap();
 });
