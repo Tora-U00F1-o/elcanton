@@ -216,8 +216,13 @@ function initMap() {
 
   let puenteMarker = null;
   let startMarker = null;
-  let polyline = null;
+  let polylines = [];
   let currentOrigin = null;
+
+  function clearPolylines() {
+    polylines.forEach(p => map.removeLayer(p));
+    polylines = [];
+  }
 
   // Always create and show Puente Romano marker at its FIXED coordinates!
   if (posFixedA) {
@@ -259,44 +264,66 @@ function initMap() {
   }
 
   function drawStraightRoute(points) {
-    if (polyline) map.removeLayer(polyline);
+    clearPolylines();
     const routeCoords = points.map(p => [p.lat, p.lng]);
-    polyline = L.polyline(routeCoords, {
+    const poly = L.polyline(routeCoords, {
       color: '#0ea5e9',
       weight: 5,
       opacity: 0.5,
       lineJoin: 'round'
     }).addTo(map);
-    map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+    polylines.push(poly);
+    map.fitBounds(poly.getBounds(), { padding: [40, 40] });
   }
 
   function drawRoute(originLat, originLng) {
     currentOrigin = { lat: originLat, lng: originLng };
     const points = [{ lat: originLat, lng: originLng }, ...intermediatePuntos, destPunto];
     const coordsString = points.map(p => `${p.lng},${p.lat}`).join(';');
-    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson`;
+    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson&alternatives=true`;
 
     fetch(osrmUrl)
       .then(response => response.json())
       .then(data => {
-        if (data.code === 'Ok' && data.routes && data.routes[0]) {
-          const route = data.routes[0];
-          const durationMinutes = (route.duration / 60).toFixed(1);
-          const distanceKm = (route.distance / 1000).toFixed(2);
-          
-          console.log(`[Ruta en Coche] Tiempo estimado: ${durationMinutes} min (${Math.round(route.duration)} s) | Distancia: ${distanceKm} km (${Math.round(route.distance)} m)`);
+        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+          clearPolylines();
 
-          if (polyline) map.removeLayer(polyline);
-          const routeCoords = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
-          
-          polyline = L.polyline(routeCoords, {
-            color: '#0ea5e9',
-            weight: 5,
-            opacity: 0.5,
-            lineJoin: 'round'
-          }).addTo(map);
-          
-          map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+          const routeStyles = [
+            { color: '#0ea5e9', weight: 5, opacity: 0.8, label: 'Principal (Azul)' },
+            { color: '#eab308', weight: 5, opacity: 0.5, label: 'Alternativa 1 (Amarillo)' },
+            { color: '#f97316', weight: 5, opacity: 0.5, label: 'Alternativa 2 (Naranja)' }
+          ];
+
+          const routesToDraw = data.routes.slice(0, 3);
+
+          routesToDraw.forEach((route, idx) => {
+            const durationMinutes = (route.duration / 60).toFixed(1);
+            const distanceKm = (route.distance / 1000).toFixed(2);
+            const style = routeStyles[idx] || { label: `Alternativa ${idx}` };
+
+            console.log(`[Ruta en Coche - ${style.label}] Tiempo: ${durationMinutes} min (${Math.round(route.duration)} s) | Distancia: ${distanceKm} km (${Math.round(route.distance)} m)`);
+          });
+
+          // Draw in reverse order (alternatives first, main route last on top)
+          for (let i = routesToDraw.length - 1; i >= 0; i--) {
+            const route = routesToDraw[i];
+            const style = routeStyles[i] || { color: '#888888', weight: 4, opacity: 0.4 };
+            const routeCoords = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+
+            const poly = L.polyline(routeCoords, {
+              color: style.color,
+              weight: style.weight,
+              opacity: style.opacity,
+              lineJoin: 'round'
+            }).addTo(map);
+
+            polylines.push(poly);
+          }
+
+          if (polylines.length > 0) {
+            const mainPoly = polylines[polylines.length - 1];
+            map.fitBounds(mainPoly.getBounds(), { padding: [40, 40] });
+          }
         } else {
           drawStraightRoute(points);
         }
