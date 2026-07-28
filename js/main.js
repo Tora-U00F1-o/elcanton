@@ -425,37 +425,178 @@ function initMap() {
       });
   }
 
-  if (routeType === 'gps') {
-    // Create separate origin marker for GPS (does not move or overwrite Puente Romano)
-    startMarker = createCustomMarker(
-      posFixedA.lat,
-      posFixedA.lng,
-      '📍',
-      '#10b981',
-      '<h4>Localizando tu ubicación...</h4>',
-      null,
-      false
-    ).addTo(map);
-    startMarker.openPopup();
+  // Variables para la geolocalización y orientación en tiempo real
+  let watchId = null;
+  let currentHeading = 0; // en grados
+  let followDeviceHeading = false; // false = Norte arriba, true = Rotar mapa/marcador con brújula
+  let userAccuracyCircle = null;
 
-    navigator.geolocation.getCurrentPosition(
+  // Actualizador visual del marcador GPS y rotación
+  function updateGPSPosition(lat, lng, heading = null, accuracy = null) {
+    const latLng = [lat, lng];
+
+    // Icono dinámico con aguja de brújula o marcador rotado
+    const iconHtml = `<div class="marker-pin-wrapper gps-pulse-wrapper" style="background:#10b981;">
+      <div class="marker-inner-content" style="transform: rotate(45deg);">📍</div>
+    </div>`;
+
+    if (!startMarker) {
+      startMarker = L.marker(latLng, {
+        icon: L.divIcon({
+          className: 'custom-div-icon gps-location-marker',
+          html: iconHtml,
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+          popupAnchor: [0, -30]
+        })
+      }).addTo(map);
+      startMarker.bindPopup('<h4>Origen: Tu ubicación actual</h4>');
+    } else {
+      startMarker.setLatLng(latLng);
+    }
+
+    // Dibujar o actualizar círculo de precisión de GPS
+    if (accuracy) {
+      if (!userAccuracyCircle) {
+        userAccuracyCircle = L.circle(latLng, {
+          radius: accuracy,
+          color: '#10b981',
+          fillColor: '#10b981',
+          fillOpacity: 0.15,
+          weight: 1
+        }).addTo(map);
+      } else {
+        userAccuracyCircle.setLatLng(latLng);
+        userAccuracyCircle.setRadius(accuracy);
+      }
+    }
+
+    // Actualizar rotación si el modo de orientación móvil está activado
+    if (heading !== null && followDeviceHeading) {
+      currentHeading = heading;
+      applyRotation(heading);
+    }
+  }
+
+  // Aplicar rotación a los iconos y elemento contenedor del mapa cuando la orientación está activada
+  function applyRotation(headingDeg) {
+    const compassIcon = document.querySelector('.compass-icon');
+    if (compassIcon) {
+      compassIcon.style.transform = `rotate(${headingDeg}deg)`;
+    }
+
+    if (followDeviceHeading && mapElement) {
+      mapElement.style.transform = `rotate(${-headingDeg}deg)`;
+      mapElement.style.transition = 'transform 0.2s ease-out';
+    } else if (mapElement) {
+      mapElement.style.transform = 'rotate(0deg)';
+      mapElement.style.transition = 'transform 0.3s ease';
+    }
+  }
+
+  // Iniciar el monitoreo continuo de GPS
+  function startGPSWatch() {
+    if (!navigator.geolocation) return;
+
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+    }
+
+    watchId = navigator.geolocation.watchPosition(
       (position) => {
         const uLat = position.coords.latitude;
         const uLng = position.coords.longitude;
+        const heading = position.coords.heading; // rumbo reportado por GPS si se mueve
+        const accuracy = position.coords.accuracy;
 
-        startMarker.setLatLng([uLat, uLng]);
-        startMarker.bindPopup('<h4>Origen: Tu ubicación actual</h4>').openPopup();
+        updateGPSPosition(uLat, uLng, heading, accuracy);
 
-        drawRoute(uLat, uLng);
+        // Redibujar ruta si cambia significativamente la distancia del origen previo
+        if (!currentOrigin || getDistanceMeters(currentOrigin.lat, currentOrigin.lng, uLat, uLng) > 20) {
+          drawRoute(uLat, uLng);
+        }
       },
       (error) => {
-        console.error('GPS error, falling back to Cangas de Onís:', error);
-        alert('No pudimos acceder a tu ubicación actual. La ruta comenzará desde Cangas de Onís por defecto.');
-        if (startMarker) map.removeLayer(startMarker);
-        drawRoute(posFixedA.lat, posFixedA.lng);
+        console.warn('WatchPosition error:', error);
       },
-      { enableHighAccuracy: true, timeout: 8000 }
+      {
+        enableHighAccuracy: true,
+        maximumAge: 2000,
+        timeout: 10000
+      }
     );
+  }
+
+  // Función auxiliar de distancia en metros
+  function getDistanceMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371e3;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+
+  // Escuchar sensores de orientación del móvil (brújula digital del dispositivo)
+  function initDeviceOrientation() {
+    const handleOrientation = (event) => {
+      let compassHeading = null;
+      if (event.webkitCompassHeading) {
+        // iOS
+        compassHeading = event.webkitCompassHeading;
+      } else if (event.alpha !== null) {
+        // Android (alpha va de 0 a 360)
+        compassHeading = (360 - event.alpha) % 360;
+      }
+
+      if (compassHeading !== null) {
+        currentHeading = compassHeading;
+        applyRotation(compassHeading);
+      }
+    };
+
+    if (window.DeviceOrientationEvent) {
+      if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        // iOS 13+ requiere permiso
+        DeviceOrientationEvent.requestPermission()
+          .then(permissionState => {
+            if (permissionState === 'granted') {
+              window.addEventListener('deviceorientation', handleOrientation, true);
+            }
+          })
+          .catch(console.error);
+      } else {
+        window.addEventListener('deviceorientation', handleOrientation, true);
+      }
+    }
+  }
+
+  // Botón de orientación con la brújula
+  const btnCompassHeading = document.getElementById('btnCompassHeading');
+  const compassBtnText = document.getElementById('compassBtnText');
+
+  if (btnCompassHeading) {
+    btnCompassHeading.addEventListener('click', () => {
+      followDeviceHeading = !followDeviceHeading;
+
+      if (followDeviceHeading) {
+        btnCompassHeading.classList.add('active-heading');
+        if (compassBtnText) compassBtnText.textContent = 'Móvil';
+        initDeviceOrientation();
+        applyRotation(currentHeading);
+      } else {
+        btnCompassHeading.classList.remove('active-heading');
+        if (compassBtnText) compassBtnText.textContent = 'Norte';
+        applyRotation(0);
+      }
+    });
+  }
+
+  if (routeType === 'gps') {
+    // Modo GPS activado: Iniciar seguimiento en tiempo real
+    startGPSWatch();
   } else {
     // Fixed mode: start at Puente Romano
     drawRoute(posFixedA.lat, posFixedA.lng);
@@ -516,22 +657,12 @@ function initMap() {
           const uLat = position.coords.latitude;
           const uLng = position.coords.longitude;
 
-          // Place or shift existing GPS start marker
-          if (!startMarker) {
-            startMarker = createCustomMarker(
-              uLat,
-              uLng,
-              '📍',
-              '#10b981',
-              '<h4>Origen: Tu ubicación actual</h4>',
-              null,
-              false
-            ).addTo(map);
-          } else {
-            startMarker.setLatLng([uLat, uLng]);
-          }
+          updateGPSPosition(uLat, uLng, position.coords.heading, position.coords.accuracy);
+          map.flyTo([uLat, uLng], 16, { animate: true, duration: 1.5 });
 
-          map.flyTo([uLat, uLng], 15, { animate: true, duration: 1.5 });
+          // Asegurar que watchPosition está activo
+          startGPSWatch();
+
           btnRecenterGPS.innerHTML = originalHtml;
           btnRecenterGPS.disabled = false;
         },

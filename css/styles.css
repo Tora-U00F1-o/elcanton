@@ -595,6 +595,25 @@ body.dark-mode #btnOpenGoogleMaps {
   stroke: var(--text-primary);
 }
 
+.compass-icon {
+  stroke: var(--accent-color);
+  transition: transform 0.3s ease;
+}
+
+.map-btn-top.active-heading {
+  background-color: var(--accent-soft);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.map-btn-top.active-heading .compass-icon {
+  stroke: var(--accent-color);
+}
+
+.map-btn-top:hover .compass-icon {
+  stroke: #ffffff;
+}
+
 body.dark-mode .gps-icon {
   stroke: var(--text-primary);
 }
