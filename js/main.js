@@ -261,7 +261,7 @@ function initMap() {
     });
   }
 
-  // Touch Swipe & Drag Handler for Smartphone Sliders
+  // Touch Swipe & Live Drag Handler for Smartphone Cards
   function setupTouchSwiper(element, options = {}) {
     if (!element) return;
 
@@ -270,7 +270,9 @@ function initMap() {
     let touchEndX = 0;
     let touchEndY = 0;
     let isDragging = false;
+    let isVerticalDrag = false;
     let ignoreVertical = false;
+    const targetEl = options.dragElement || element;
 
     element.addEventListener('touchstart', (e) => {
       if (e.touches.length > 1) return;
@@ -286,15 +288,30 @@ function initMap() {
       touchEndX = touchStartX;
       touchEndY = touchStartY;
       isDragging = true;
+      isVerticalDrag = false;
     }, { passive: true });
 
     element.addEventListener('touchmove', (e) => {
       if (!isDragging || e.touches.length > 1) return;
       touchEndX = e.touches[0].clientX;
       touchEndY = e.touches[0].clientY;
+
+      const diffX = touchEndX - touchStartX;
+      const diffY = touchEndY - touchStartY;
+
+      // Determine drag direction once threshold is passed
+      if (!isVerticalDrag && Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 6 && !ignoreVertical) {
+        isVerticalDrag = true;
+      }
+
+      // Live drag effect tracking finger position
+      if (isVerticalDrag && options.liveDrag !== false) {
+        targetEl.style.transition = 'none';
+        targetEl.style.transform = `translateY(${diffY}px)`;
+      }
     }, { passive: true });
 
-    element.addEventListener('touchend', () => {
+    const handleDragEnd = () => {
       if (!isDragging) return;
       isDragging = false;
 
@@ -302,19 +319,22 @@ function initMap() {
       const diffY = touchEndY - touchStartY;
       const threshold = options.threshold || 30;
 
-      if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > threshold) {
+      if (isVerticalDrag) {
+        // Smoothly restore transition and transform
+        targetEl.style.transition = '';
+        targetEl.style.transform = '';
+
+        if (diffY > threshold && options.onSwipeDown) {
+          options.onSwipeDown();
+        } else if (diffY < -threshold && options.onSwipeUp) {
+          options.onSwipeUp();
+        }
+      } else if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > threshold) {
         // Horizontal Swipe
         if (diffX < 0 && options.onSwipeLeft) {
           options.onSwipeLeft();
         } else if (diffX > 0 && options.onSwipeRight) {
           options.onSwipeRight();
-        }
-      } else if (!ignoreVertical && Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > threshold) {
-        // Vertical Swipe
-        if (diffY < 0 && options.onSwipeUp) {
-          options.onSwipeUp();
-        } else if (diffY > 0 && options.onSwipeDown) {
-          options.onSwipeDown();
         }
       }
 
@@ -322,8 +342,12 @@ function initMap() {
       touchStartY = 0;
       touchEndX = 0;
       touchEndY = 0;
+      isVerticalDrag = false;
       ignoreVertical = false;
-    });
+    };
+
+    element.addEventListener('touchend', handleDragEnd);
+    element.addEventListener('touchcancel', handleDragEnd);
   }
 
   // Mutual exclusion helpers for Top Stepper and Bottom HUD Card
@@ -371,6 +395,8 @@ function initMap() {
   if (topStepperContainer) {
     setupTouchSwiper(topStepperContainer, {
       threshold: 35,
+      liveDrag: true,
+      dragElement: topStepperContainer,
       ignoreVerticalSelector: '#topStepperDrawer, .stepper-expanded-drawer',
       onSwipeLeft: () => {
         if (selectedPreviewIndex < orderedCheckpoints.length - 1) {
@@ -405,6 +431,8 @@ function initMap() {
   if (bottomCard) {
     setupTouchSwiper(bottomCard, {
       threshold: 30,
+      liveDrag: true,
+      dragElement: bottomCard,
       onSwipeLeft: () => {
         if (selectedPreviewIndex < orderedCheckpoints.length - 1) {
           selectCheckpoint(selectedPreviewIndex + 1, true);
