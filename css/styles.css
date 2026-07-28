@@ -427,7 +427,10 @@ body.dark-mode .switch-circle {
 .stepper-track-wrapper {
   padding: 0.375rem 0.75rem 1.25rem 0.75rem;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
   scrollbar-width: none;
+  user-select: none;
 }
 .stepper-track-wrapper::-webkit-scrollbar {
   display: none;
@@ -454,15 +457,15 @@ body.dark-mode .switch-circle {
 }
 
 .step-bubble {
-  width: 2.125rem;
-  height: 2.125rem;
+  width: 1.85rem;
+  height: 1.85rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-title);
   font-weight: 700;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   border: 0.125rem solid transparent;
   position: relative;
@@ -504,8 +507,8 @@ body.dark-mode .step-bubble.future {
 /* 4. Preview / Jump Checkpoint: Purple ring & Purple Eye badge */
 .step-bubble.preview-selected {
   border-color: #a855f7 !important;
-  box-shadow: 0 0 0 0.2rem rgba(168, 85, 247, 0.35) !important;
-  transform: scale(1.12);
+  box-shadow: 0 0 0 0.125rem rgba(168, 85, 247, 0.4) !important;
+  transform: scale(1.1);
 }
 
 .bubble-eye-badge {
@@ -541,7 +544,15 @@ body.dark-mode .step-bubble.future {
 }
 
 .stepper-line.completed {
-  background-color: #38bdf8;
+  background-color: #0ea5e9;
+}
+
+.stepper-line.half-completed {
+  background: linear-gradient(to right, #0ea5e9 50%, #cbd5e1 50%);
+}
+
+body.dark-mode .stepper-line.half-completed {
+  background: linear-gradient(to right, #0ea5e9 50%, #475569 50%);
 }
 
 /* Drag Handle Bar */
@@ -742,6 +753,8 @@ body.dark-mode .step-bubble.future {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  touch-action: pan-x pan-y;
+  user-select: none;
 }
 
 .card-drag-bar {
@@ -956,23 +969,23 @@ body.dark-mode .step-bubble.future {
 
 .marker-pin-wrapper {
   position: relative;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 1.95rem;
+  height: 1.95rem;
   border-radius: 50% 50% 50% 0;
   background: #009be5;
   transform: rotate(-45deg);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0.25rem 0.625rem rgba(0,0,0,0.25);
-  border: 0.1875rem solid #ffffff;
+  box-shadow: 0 0.2rem 0.5rem rgba(0,0,0,0.25);
+  border: 0.15rem solid #ffffff;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .marker-inner-content {
   transform: rotate(45deg);
   font-family: var(--font-title);
-  font-size: 0.9375rem;
+  font-size: 0.8rem;
   font-weight: 800;
   color: #ffffff;
   text-align: center;
@@ -993,11 +1006,16 @@ body.dark-mode .step-bubble.future {
   background: #94a3b8 !important;
 }
 
+.marker-pin-wrapper.start-reference-marker {
+  background: #64748b !important;
+  border-color: #e2e8f0 !important;
+}
+
 .marker-pin-wrapper.preview-marker {
   background: #a855f7 !important;
   border-color: #ffffff !important;
-  box-shadow: 0 0 0 0.35rem rgba(168, 85, 247, 0.45) !important;
-  transform: rotate(-45deg) scale(1.25) !important;
+  box-shadow: 0 0 0 0.18rem rgba(168, 85, 247, 0.4) !important;
+  transform: rotate(-45deg) scale(1.15) !important;
   z-index: 9999 !important;
 }
 

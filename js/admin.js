@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const isStart = key === 'inicioFijo';
       const isDest = key === 'destinoFinal';
       const color = isStart ? '#2563eb' : (isDest ? '#10b981' : '#0ea5e9');
-      const iconText = isStart ? '🌉' : (isDest ? '🏠' : '📍');
+      const iconText = isStart ? '🏛️' : (isDest ? '🏁' : '📍');
 
       const marker = L.marker([p.lat, p.lng], {
         icon: L.divIcon({

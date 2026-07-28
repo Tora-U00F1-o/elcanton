@@ -163,18 +163,6 @@ function initDashboard() {
 function getCheckpointList() {
   const puntos = CONFIG.puntos;
   const list = [];
-  
-  if (puntos.inicioFijo) {
-    list.push({
-      key: 'inicioFijo',
-      label: 1,
-      titulo: puntos.inicioFijo.nombre || "Puente Romano de Cangas de Onís",
-      indicacion: "Punto de inicio de la ruta.",
-      fotoUrl: puntos.inicioFijo.fotoUrl || '',
-      lat: puntos.inicioFijo.lat,
-      lng: puntos.inicioFijo.lng
-    });
-  }
 
   const intermediate = getIntermediatePuntos();
   intermediate.forEach((p, idx) => {
@@ -197,7 +185,8 @@ function getCheckpointList() {
       indicacion: puntos.destinoFinal.indicacion || "¡Has llegado a tu destino!",
       fotoUrl: puntos.destinoFinal.fotoUrl || '',
       lat: puntos.destinoFinal.lat,
-      lng: puntos.destinoFinal.lng
+      lng: puntos.destinoFinal.lng,
+      isFinal: true
     });
   }
 
@@ -245,7 +234,10 @@ function initMap() {
   const hudImgContainer = document.getElementById('hudImgContainer');
   const hudImg = document.getElementById('hudImg');
   const hudTitle = document.getElementById('hudTitle');
+  const hudDesc = document.getElementById('hudDesc');
+  const hudDistanceBadge = document.getElementById('hudDistanceBadge');
   const hudDistanceText = document.getElementById('hudDistanceText');
+  const hudMinDistanceRow = document.getElementById('hudMinDistanceRow');
   const hudMinDistanceText = document.getElementById('hudMinDistanceText');
   const btnPrevCheckpoint = document.getElementById('btnPrevCheckpoint');
   const btnNextCheckpoint = document.getElementById('btnNextCheckpoint');
@@ -269,28 +261,132 @@ function initMap() {
     });
   }
 
-  // Toggle Stepper Drawer expand/collapse
+  // Touch Swipe & Drag Handler for Smartphone Sliders
+  function setupTouchSwiper(element, options = {}) {
+    if (!element) return;
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+    let isDragging = false;
+
+    element.addEventListener('touchstart', (e) => {
+      if (e.touches.length > 1) return;
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      touchEndX = touchStartX;
+      touchEndY = touchStartY;
+      isDragging = true;
+    }, { passive: true });
+
+    element.addEventListener('touchmove', (e) => {
+      if (!isDragging || e.touches.length > 1) return;
+      touchEndX = e.touches[0].clientX;
+      touchEndY = e.touches[0].clientY;
+    }, { passive: true });
+
+    element.addEventListener('touchend', () => {
+      if (!isDragging) return;
+      isDragging = false;
+
+      const diffX = touchEndX - touchStartX;
+      const diffY = touchEndY - touchStartY;
+      const threshold = options.threshold || 30;
+
+      if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > threshold) {
+        // Horizontal Swipe
+        if (diffX < 0 && options.onSwipeLeft) {
+          options.onSwipeLeft();
+        } else if (diffX > 0 && options.onSwipeRight) {
+          options.onSwipeRight();
+        }
+      } else if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > threshold) {
+        // Vertical Swipe
+        if (diffY < 0 && options.onSwipeUp) {
+          options.onSwipeUp();
+        } else if (diffY > 0 && options.onSwipeDown) {
+          options.onSwipeDown();
+        }
+      }
+
+      touchStartX = 0;
+      touchStartY = 0;
+      touchEndX = 0;
+      touchEndY = 0;
+    });
+  }
+
+  // Toggle Stepper Drawer expand/collapse & Touch Sliders
   if (topStepperDragHandle && topStepperContainer) {
     topStepperDragHandle.addEventListener('click', () => {
       topStepperContainer.classList.toggle('is-expanded');
     });
   }
 
-  // Toggle Bottom Card minimize/expand
+  if (topStepperContainer) {
+    setupTouchSwiper(topStepperContainer, {
+      threshold: 35,
+      onSwipeLeft: () => {
+        if (selectedPreviewIndex < orderedCheckpoints.length - 1) {
+          selectCheckpoint(selectedPreviewIndex + 1, true);
+        }
+      },
+      onSwipeRight: () => {
+        if (selectedPreviewIndex > 0) {
+          selectCheckpoint(selectedPreviewIndex - 1, true);
+        }
+      },
+      onSwipeDown: () => {
+        topStepperContainer.classList.add('is-expanded');
+      },
+      onSwipeUp: () => {
+        topStepperContainer.classList.remove('is-expanded');
+      }
+    });
+  }
+
+  // Toggle Bottom Card minimize/expand & Touch Sliders
   if (bottomCardDragHandle && bottomCard) {
     bottomCardDragHandle.addEventListener('click', () => {
       bottomCard.classList.toggle('is-minimized');
     });
   }
 
+  if (bottomCard) {
+    setupTouchSwiper(bottomCard, {
+      threshold: 30,
+      onSwipeLeft: () => {
+        if (selectedPreviewIndex < orderedCheckpoints.length - 1) {
+          selectCheckpoint(selectedPreviewIndex + 1, true);
+        }
+      },
+      onSwipeRight: () => {
+        if (selectedPreviewIndex > 0) {
+          selectCheckpoint(selectedPreviewIndex - 1, true);
+        }
+      },
+      onSwipeUp: () => {
+        bottomCard.classList.remove('is-minimized');
+      },
+      onSwipeDown: () => {
+        bottomCard.classList.add('is-minimized');
+      }
+    });
+  }
+
   // Leaflet Checkpoint Markers map
   const checkpointMarkers = [];
+  const metaFlagSvg = `<svg viewBox="0 0 24 24" style="width: 1.15rem; height: 1.15rem; fill: currentColor; display: inline-block; vertical-align: middle;" aria-label="Meta"><path d="M5 2c-0.55 0-1 0.45-1 1v18c0 0.55 0.45 1 1 1s1-0.45 1-1v-8h13c0.55 0 1-0.45 1-1V4c0-0.55-0.45-1-1-1H6V3c0-0.55-0.45-1-1-1zm1 3h3v3H6V5zm3 3h3v3H9V8zm3-3h3v3h-3V5zm3 3h3v3h-3V8zm-3 3h3v3h-3v-3zm-3 0h3v3H9v-3zm-3 0h3v3H6v-3z"/></svg>`;
 
-  function createCustomMarker(lat, lng, label, index) {
+  function createCustomMarker(lat, lng, cp, index) {
+    const isFinal = index === orderedCheckpoints.length - 1 || cp.isFinal || cp.key === 'destinoFinal' || cp.label === 6;
+    const innerContent = isFinal ? metaFlagSvg : cp.label;
+
     const marker = L.marker([lat, lng], {
       icon: L.divIcon({
         className: 'custom-div-icon',
-        html: `<div class="marker-pin-wrapper future-marker"><div class="marker-inner-content">${label}</div></div>`,
+        html: `<div class="marker-pin-wrapper future-marker"><div class="marker-inner-content">${innerContent}</div></div>`,
         iconSize: [36, 42],
         iconAnchor: [18, 42],
         popupAnchor: [0, -38]
@@ -308,9 +404,30 @@ function initMap() {
 
   // Build markers on map
   orderedCheckpoints.forEach((cp, idx) => {
-    const marker = createCustomMarker(cp.lat, cp.lng, cp.label, idx).addTo(map);
+    const marker = createCustomMarker(cp.lat, cp.lng, cp, idx).addTo(map);
     checkpointMarkers.push(marker);
   });
+
+  // Add reference marker for Puente Romano on the map
+  if (posFixedA && posFixedA.lat && posFixedA.lng) {
+    const inicioNombre = posFixedA.nombre || "Puente Romano de Cangas de Onís";
+    const startReferenceMarker = L.marker([posFixedA.lat, posFixedA.lng], {
+      icon: L.divIcon({
+        className: 'custom-div-icon',
+        html: `<div class="marker-pin-wrapper start-reference-marker" title="${inicioNombre}"><div class="marker-inner-content">🏛️</div></div>`,
+        iconSize: [32, 38],
+        iconAnchor: [16, 38],
+        popupAnchor: [0, -34]
+      })
+    }).addTo(map);
+
+    startReferenceMarker.bindPopup(`
+      <div style="text-align:center; padding: 4px;">
+        <strong style="font-size: 0.95rem;">${inicioNombre}</strong><br>
+        <span style="font-size: 0.8rem; color: #64748b;">Punto de Referencia de Inicio</span>
+      </div>
+    `);
+  }
 
   // Render Zone Polygons for reference
   let polygonLayers = [];
@@ -338,7 +455,7 @@ function initMap() {
 
   // Helper to format distance in meters/km
   function formatDistance(meters) {
-    if (meters === null || meters === undefined || isNaN(meters)) return '-- m';
+    if (meters === null || meters === undefined || isNaN(meters)) return null;
     if (meters < 1000) return `${Math.round(meters)} m`;
     return `${(meters / 1000).toFixed(1)} km`;
   }
@@ -395,7 +512,12 @@ function initMap() {
         }
 
         bubble.className = bubbleClass;
-        bubble.textContent = cp.label;
+        const isFinal = idx === orderedCheckpoints.length - 1 || cp.isFinal || cp.key === 'destinoFinal' || cp.label === 6;
+        if (isFinal) {
+          bubble.innerHTML = metaFlagSvg;
+        } else {
+          bubble.textContent = cp.label;
+        }
 
         // Add Material Design eye icon if this bubble is previewed
         if (idx === selectedPreviewIndex && selectedPreviewIndex !== activeImmediateIndex) {
@@ -417,7 +539,13 @@ function initMap() {
         // Add connecting line if not last item
         if (idx < orderedCheckpoints.length - 1) {
           const line = document.createElement('div');
-          line.className = `stepper-line ${idx < activeImmediateIndex ? 'completed' : ''}`;
+          let lineClass = 'stepper-line';
+          if (idx < activeImmediateIndex) {
+            lineClass += ' completed';
+          } else if (idx === activeImmediateIndex) {
+            lineClass += ' half-completed';
+          }
+          line.className = lineClass;
           stepperTrack.appendChild(line);
         }
       });
@@ -431,7 +559,10 @@ function initMap() {
         drawerItem.className = `drawer-checkpoint-item ${idx === selectedPreviewIndex ? 'active-selected' : ''}`;
 
         let statusClass = idx < activeImmediateIndex ? 'passed' : (idx === activeImmediateIndex ? 'current' : 'future');
-        let distStr = '-- m';
+        const isFinal = idx === orderedCheckpoints.length - 1 || cp.isFinal || cp.key === 'destinoFinal' || cp.label === 6;
+        const badgeInner = idx < activeImmediateIndex ? '✓' : (isFinal ? metaFlagSvg : cp.label);
+
+        let distStr = null;
         if (currentOrigin) {
           const d = getDistanceMeters(currentOrigin.lat, currentOrigin.lng, cp.lat, cp.lng);
           distStr = formatDistance(d);
@@ -439,14 +570,14 @@ function initMap() {
 
         drawerItem.innerHTML = `
           <div class="drawer-item-badge ${statusClass}">
-            ${idx < activeImmediateIndex ? '✓' : cp.label}
+            ${badgeInner}
           </div>
           <div class="drawer-item-content">
             <div class="drawer-item-title">${cp.titulo}</div>
             <div class="drawer-item-desc">${cp.indicacion}</div>
           </div>
           ${cp.fotoUrl ? `<img src="${cp.fotoUrl}" class="drawer-item-thumb" alt="${cp.titulo}">` : ''}
-          <div class="drawer-item-distance">${distStr}</div>
+          ${distStr ? `<div class="drawer-item-distance">${distStr}</div>` : ''}
         `;
 
         drawerItem.addEventListener('click', () => {
@@ -472,13 +603,25 @@ function initMap() {
       if (hudTitle) hudTitle.textContent = activeCP.titulo;
       if (hudDesc) hudDesc.textContent = activeCP.indicacion;
 
-      let formattedDist = '-- m';
+      let formattedDist = null;
       if (currentOrigin) {
         const dist = getDistanceMeters(currentOrigin.lat, currentOrigin.lng, activeCP.lat, activeCP.lng);
         formattedDist = formatDistance(dist);
       }
-      if (hudDistanceText) hudDistanceText.textContent = formattedDist;
-      if (hudMinDistanceText) hudMinDistanceText.textContent = formattedDist;
+
+      if (formattedDist) {
+        if (hudDistanceBadge) {
+          hudDistanceBadge.style.display = 'flex';
+          if (hudDistanceText) hudDistanceText.textContent = formattedDist;
+        }
+        if (hudMinDistanceRow) {
+          hudMinDistanceRow.style.display = 'flex';
+          if (hudMinDistanceText) hudMinDistanceText.textContent = formattedDist;
+        }
+      } else {
+        if (hudDistanceBadge) hudDistanceBadge.style.display = 'none';
+        if (hudMinDistanceRow) hudMinDistanceRow.style.display = 'none';
+      }
     }
   }
 
@@ -491,7 +634,7 @@ function initMap() {
 
     if (flyToMarker && map) {
       const targetCP = orderedCheckpoints[index];
-      const targetZoom = 17;
+      const targetZoom = 18.5;
       const targetPoint = map.project([targetCP.lat, targetCP.lng], targetZoom);
       const mapHeight = map.getSize().y;
       const offsetY = mapHeight * 0.12;
