@@ -17,6 +17,47 @@ function initTheme() {
   }
 }
 
+// Helper to get active zones configuration (localStorage override or file)
+function getActiveZonesConfig() {
+  try {
+    const localData = localStorage.getItem('ZONES_CONFIG');
+    if (localData) {
+      return JSON.parse(localData);
+    }
+  } catch (e) {
+    console.warn('Error reading ZONES_CONFIG from localStorage:', e);
+  }
+  return (window.ZONES_CONFIG && window.ZONES_CONFIG.polygons) ? window.ZONES_CONFIG : { polygons: [] };
+}
+
+// Ray-Casting Point in Polygon algorithm
+function isPointInPolygon(lat, lng, polygonCoords) {
+  if (!polygonCoords || polygonCoords.length < 3) return false;
+  let inside = false;
+  for (let i = 0, j = polygonCoords.length - 1; i < polygonCoords.length; j = i++) {
+    const xi = polygonCoords[i][0], yi = polygonCoords[i][1];
+    const xj = polygonCoords[j][0], yj = polygonCoords[j][1];
+    const intersect = ((yi > lng) !== (yj > lng))
+        && (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+// Find polygon and target checkpoint key for an origin coordinate
+function getNextCheckpointKeyForLocation(lat, lng) {
+  const config = getActiveZonesConfig();
+  if (config.polygons && config.polygons.length > 0) {
+    for (const poly of config.polygons) {
+      if (poly.coords && isPointInPolygon(lat, lng, poly.coords)) {
+        console.log(`Ubicación en polígono "${poly.nombre}". Siguiente checkpoint: ${poly.nextCheckpointKey}`);
+        return poly.nextCheckpointKey;
+      }
+    }
+  }
+  return null;
+}
+
 // Helper to get intermediate points: pto1..ptoN
 function getIntermediatePuntos() {
   const puntos = CONFIG.puntos;
@@ -27,8 +68,29 @@ function getIntermediatePuntos() {
     const numB = parseInt(b.replace('pto', ''), 10);
     return numA - numB;
   });
-  ptoKeys.forEach(k => list.push(puntos[k]));
+  ptoKeys.forEach(k => list.push({ key: k, ...puntos[k] }));
   return list;
+}
+
+// Helper to filter intermediate points starting from assigned target checkpoint
+function getEffectiveIntermediatePuntos(originLat, originLng) {
+  const allIntermediates = getIntermediatePuntos();
+  if (originLat === undefined || originLng === undefined) return allIntermediates;
+
+  const targetKey = getNextCheckpointKeyForLocation(originLat, originLng);
+  if (!targetKey) return allIntermediates;
+
+  if (targetKey === 'destinoFinal') {
+    return [];
+  }
+
+  // Find index of targetKey in intermediate points list
+  const targetIdx = allIntermediates.findIndex(p => p.key === targetKey || p.nombre === targetKey);
+  if (targetIdx !== -1) {
+    return allIntermediates.slice(targetIdx);
+  }
+
+  return allIntermediates;
 }
 
 // Helper to get all points ordered: inicioFijo -> pto1..ptoN -> destinoFinal
@@ -54,7 +116,7 @@ function getOrderedPuntos() {
 function getGoogleMapsUrl(originLat, originLng) {
   const points = [];
   
-  const intermediate = getIntermediatePuntos();
+  const intermediate = getEffectiveIntermediatePuntos(originLat, originLng);
   intermediate.forEach(p => points.push(p));
   
   const destPoint = CONFIG.puntos.destinoFinal;
@@ -62,8 +124,12 @@ function getGoogleMapsUrl(originLat, originLng) {
   
   const destinationQuery = `${destPoint.lat},${destPoint.lng}`;
   const waypoints = points.map(p => `${p.lat},${p.lng}`);
-  const waypointsStr = waypoints.join('|');
   
+  if (waypoints.length === 0) {
+    return `https://www.google.com/maps/dir/?api=1&origin=${originLat},${originLng}&destination=${encodeURIComponent(destinationQuery)}&travelmode=driving`;
+  }
+  
+  const waypointsStr = waypoints.join('|');
   return `https://www.google.com/maps/dir/?api=1&origin=${originLat},${originLng}&waypoints=${encodeURIComponent(waypointsStr)}&destination=${encodeURIComponent(destinationQuery)}&travelmode=driving`;
 }
 
@@ -263,6 +329,30 @@ function initMap() {
     ).addTo(map);
   }
 
+  // Render configured zone polygons on map for visual reference
+  let polygonLayers = [];
+  function renderZonePolygons() {
+    polygonLayers.forEach(l => map.removeLayer(l));
+    polygonLayers = [];
+    const config = getActiveZonesConfig();
+    if (config.polygons) {
+      config.polygons.forEach(p => {
+        if (p.coords && p.coords.length >= 3) {
+          const poly = L.polygon(p.coords, {
+            color: '#a855f7',
+            weight: 2,
+            dashArray: '5, 5',
+            fillColor: '#c084fc',
+            fillOpacity: 0.2
+          }).addTo(map);
+          poly.bindTooltip(`Zona: ${p.nombre || 'Polígono'} ➔ Checkpoint: ${p.nextCheckpointKey || 'Auto'}`);
+          polygonLayers.push(poly);
+        }
+      });
+    }
+  }
+  renderZonePolygons();
+
   function drawStraightRoute(points) {
     clearPolylines();
     const routeCoords = points.map(p => [p.lat, p.lng]);
@@ -278,7 +368,8 @@ function initMap() {
 
   function drawRoute(originLat, originLng) {
     currentOrigin = { lat: originLat, lng: originLng };
-    const points = [{ lat: originLat, lng: originLng }, ...intermediatePuntos, destPunto];
+    const effectiveIntermediates = getEffectiveIntermediatePuntos(originLat, originLng);
+    const points = [{ lat: originLat, lng: originLng }, ...effectiveIntermediates, destPunto];
     const coordsString = points.map(p => `${p.lng},${p.lat}`).join(';');
     const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson&alternatives=true`;
 

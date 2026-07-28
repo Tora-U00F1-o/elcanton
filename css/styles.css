@@ -831,3 +831,11 @@ body.dark-mode .elegant-modal-overlay {
   }
 }
 
+.btn-admin-link {
+  transition: all 0.3s ease;
+}
+.btn-admin-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.25);
+}
+

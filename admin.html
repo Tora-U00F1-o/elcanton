@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ruta Guided Web - Administrador de Zonas</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  
+  <!-- Global Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    /* Specific styles for Admin 3-Column Layout */
+    .admin-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+      background-color: var(--bg-primary);
+    }
+
+    .admin-header {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      padding: 0.85rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      z-index: 1000;
+    }
+
+    .admin-title-group {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .admin-title-badge {
+      background: #a855f7;
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.6rem;
+      border-radius: 2rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .admin-main {
+      display: flex;
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      flex-direction: row;
+    }
+
+    /* Left Sidebar: Drawing Tools & Coordinate Testing */
+    .admin-sidebar-left {
+      width: 320px;
+      min-width: 290px;
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      z-index: 1000;
+      overflow-y: auto;
+      padding: 1rem;
+      gap: 1rem;
+    }
+
+    /* Center: Map */
+    #adminMap {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Right Sidebar: Polygon List & Export */
+    .admin-sidebar-right {
+      width: 380px;
+      min-width: 320px;
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      z-index: 1000;
+      overflow-y: auto;
+      padding: 1rem;
+      gap: 1rem;
+    }
+
+    @media (max-width: 1024px) {
+      .admin-main {
+        flex-direction: column;
+      }
+      .admin-sidebar-left, .admin-sidebar-right {
+        width: 100%;
+        max-height: 40vh;
+        border: none;
+        border-bottom: 1px solid var(--border-color);
+      }
+      #adminMap {
+        min-height: 40vh;
+      }
+    }
+
+    .admin-card {
+      background: rgba(255, 255, 255, 0.4);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    body.dark-mode .admin-card {
+      background: rgba(15, 23, 42, 0.5);
+    }
+
+    .card-title {
+      font-family: var(--font-title);
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .btn-admin-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1rem;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      font-size: 0.85rem;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-admin-primary {
+      background: #a855f7;
+      color: white;
+    }
+    .btn-admin-primary:hover {
+      background: #9333ea;
+    }
+
+    .btn-admin-success {
+      background: #10b981;
+      color: white;
+    }
+    .btn-admin-success:hover {
+      background: #059669;
+    }
+
+    .btn-admin-outline {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+    .btn-admin-outline:hover {
+      background: var(--bg-secondary);
+    }
+
+    .btn-admin-danger {
+      background: #ef4444;
+      color: white;
+      padding: 0.35rem 0.65rem;
+      font-size: 0.75rem;
+    }
+
+    .polygon-item {
+      background: var(--glass-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .polygon-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .admin-select, .admin-input {
+      width: 100%;
+      padding: 0.5rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 0.85rem;
+    }
+
+    .export-modal-content {
+      width: 90%;
+      max-width: 600px;
+    }
+
+    .code-preview {
+      width: 100%;
+      height: 200px;
+      background: #090d16;
+      color: #38bdf8;
+      font-family: monospace;
+      font-size: 0.8rem;
+      padding: 0.75rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      resize: vertical;
+    }
+
+    /* Fixed Box-Shadow Ring Pulse for Closing Vertex Node - STABLE ON MAP */
+    .closing-vertex-node {
+      width: 18px;
+      height: 18px;
+      background: #10b981;
+      border: 3px solid #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      animation: pulseRing 1.5s infinite;
+      cursor: pointer;
+    }
+    @keyframes pulseRing {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="admin-container">
+    <!-- Header -->
+    <header class="admin-header">
+      <div class="admin-title-group">
+        <h1 class="app-title" style="margin: 0; font-size: 1.25rem;">
+          ⚙️ Gestor de Zonas por Polígono
+        </h1>
+        <span class="admin-title-badge">Admin Panel</span>
+      </div>
+      <a href="index.html" class="btn-admin-action btn-admin-outline" style="text-decoration: none;">
+        ← Volver al Inicio
+      </a>
+    </header>
+
+    <div class="admin-main">
+      <!-- 1. LEFT SIDEBAR: Creation Tools & Testing Section -->
+      <aside class="admin-sidebar-left">
+        <!-- Card 1: Drawing & Creation -->
+        <div class="admin-card">
+          <div class="card-title">
+            <span>✏️ Crear Polígonos</span>
+          </div>
+          <button class="btn-admin-action btn-admin-primary" id="btnStartDraw">
+            ➕ Dibujar Polígono
+          </button>
+          <button class="btn-admin-action btn-admin-success" id="btnFinishDraw" style="display: none;">
+            ✅ Finalizar (<span id="vertexCount">0</span> puntos)
+          </button>
+          <button class="btn-admin-action btn-admin-outline" id="btnCancelDraw" style="display: none; color: #ef4444;">
+            ❌ Cancelar Dibujo
+          </button>
+          
+          <div style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.4; background: var(--bg-secondary); padding: 0.65rem; border-radius: var(--radius-sm); margin-top: 0.25rem;">
+            📌 <strong>Instrucciones:</strong><br>
+            1. Haz clic en <strong>Dibujar Polígono</strong>.<br>
+            2. Marca vértices sobre el mapa.<br>
+            3. Haz clic en el <strong>primer punto (pulsante verde)</strong> para cerrar el polígono.<br>
+            4. Toca cualquier punto marcado para borrarlo.
+          </div>
+        </div>
+
+        <!-- Card 2: Coordinate Testing Section (NOW ON THE LEFT SIDEBAR) -->
+        <div class="admin-card">
+          <div class="card-title">
+            <span>🧪 Probador de Coordenadas</span>
+          </div>
+          <p style="font-size: 0.78rem; color: var(--text-secondary);">
+            Haz clic en cualquier punto del mapa para simular una ubicación GPS y probar el cálculo de ruta.
+          </p>
+          <div id="testResultBox" style="font-size: 0.85rem; padding: 0.65rem; background: var(--bg-secondary); border-radius: var(--radius-sm); border: 1px dashed var(--border-color);">
+            Haz clic en el mapa para probar una coordenada.
+          </div>
+          <div id="testActionButtons" style="display: none; flex-direction: column; gap: 0.5rem; margin-top: 0.25rem;">
+            <button class="btn-admin-action btn-admin-primary" id="btnTestShowLeaflet">
+              🗺️ Mostrar ruta en Leaflet
+            </button>
+            <button class="btn-admin-action btn-admin-outline" id="btnTestOpenGoogleMaps">
+              🚗 Ver en Google Maps
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- 2. CENTER: Leaflet Map -->
+      <div id="adminMap"></div>
+
+      <!-- 3. RIGHT SIDEBAR: Created Polygons List & Export -->
+      <aside class="admin-sidebar-right">
+        <!-- Polygons List Card -->
+        <div class="admin-card">
+          <div class="card-title">
+            <span>📐 Polígonos Creados</span>
+            <span id="polyTotalBadge" style="font-size: 0.75rem; opacity: 0.8; background: var(--bg-secondary); padding: 0.15rem 0.45rem; border-radius: 1rem;">0 zonas</span>
+          </div>
+          
+          <div id="polygonListContainer" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 340px; overflow-y: auto;">
+            <p style="font-size: 0.85rem; color: var(--text-secondary); text-align: center; padding: 1rem 0;">
+              No hay polígonos creados aún. Haz clic en "Dibujar Polígono" en el panel izquierdo para empezar.
+            </p>
+          </div>
+
+          <button class="btn-admin-action btn-admin-success" id="btnSaveLocal" style="margin-top: 0.25rem;">
+            💾 Guardar Todos los Cambios
+          </button>
+        </div>
+
+        <!-- Export Code Card -->
+        <div class="admin-card">
+          <div class="card-title">
+            <span>📄 Exportar Configuración</span>
+          </div>
+          <button class="btn-admin-action btn-admin-outline" id="btnExportCode">
+            📄 Generar / Exportar js/admin-config.js
+          </button>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Export Code Modal -->
+  <div class="elegant-modal-overlay" id="exportModal" style="display: none;">
+    <div class="elegant-modal export-modal-content">
+      <div class="modal-icon">📄</div>
+      <h3 class="modal-title">Código JS para js/admin-config.js</h3>
+      <p class="modal-desc">
+        Copia este contenido y pégalo en <code>js/admin-config.js</code> para que los cambios queden fijos en el archivo del proyecto.
+      </p>
+      <textarea id="codePreviewText" class="code-preview" readonly></textarea>
+      <div style="display: flex; gap: 0.5rem; width: 100%; margin-top: 1rem;">
+        <button class="btn-admin-action btn-admin-primary" id="btnCopyCode" style="flex: 1;">
+          📋 Copiar Código
+        </button>
+        <button class="btn-admin-action btn-admin-outline" id="btnCloseExportModal" style="flex: 1;">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- App Configs -->
+  <script src="js/config.js"></script>
+  <script src="js/admin-config.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
