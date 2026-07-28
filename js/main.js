@@ -270,9 +270,17 @@ function initMap() {
     let touchEndX = 0;
     let touchEndY = 0;
     let isDragging = false;
+    let ignoreVertical = false;
 
     element.addEventListener('touchstart', (e) => {
       if (e.touches.length > 1) return;
+
+      if (options.ignoreVerticalSelector && e.target.closest(options.ignoreVerticalSelector)) {
+        ignoreVertical = true;
+      } else {
+        ignoreVertical = false;
+      }
+
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
       touchEndX = touchStartX;
@@ -301,7 +309,7 @@ function initMap() {
         } else if (diffX > 0 && options.onSwipeRight) {
           options.onSwipeRight();
         }
-      } else if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > threshold) {
+      } else if (!ignoreVertical && Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > threshold) {
         // Vertical Swipe
         if (diffY < 0 && options.onSwipeUp) {
           options.onSwipeUp();
@@ -314,19 +322,56 @@ function initMap() {
       touchStartY = 0;
       touchEndX = 0;
       touchEndY = 0;
+      ignoreVertical = false;
     });
+  }
+
+  // Mutual exclusion helpers for Top Stepper and Bottom HUD Card
+  function expandTopStepper() {
+    if (topStepperContainer) {
+      topStepperContainer.classList.add('is-expanded');
+    }
+    if (bottomCard) {
+      bottomCard.classList.add('is-minimized');
+    }
+  }
+
+  function collapseTopStepper() {
+    if (topStepperContainer) {
+      topStepperContainer.classList.remove('is-expanded');
+    }
+  }
+
+  function expandBottomCard() {
+    if (bottomCard) {
+      bottomCard.classList.remove('is-minimized');
+    }
+    if (topStepperContainer) {
+      topStepperContainer.classList.remove('is-expanded');
+    }
+  }
+
+  function minimizeBottomCard() {
+    if (bottomCard) {
+      bottomCard.classList.add('is-minimized');
+    }
   }
 
   // Toggle Stepper Drawer expand/collapse & Touch Sliders
   if (topStepperDragHandle && topStepperContainer) {
     topStepperDragHandle.addEventListener('click', () => {
-      topStepperContainer.classList.toggle('is-expanded');
+      if (topStepperContainer.classList.contains('is-expanded')) {
+        collapseTopStepper();
+      } else {
+        expandTopStepper();
+      }
     });
   }
 
   if (topStepperContainer) {
     setupTouchSwiper(topStepperContainer, {
       threshold: 35,
+      ignoreVerticalSelector: '#topStepperDrawer, .stepper-expanded-drawer',
       onSwipeLeft: () => {
         if (selectedPreviewIndex < orderedCheckpoints.length - 1) {
           selectCheckpoint(selectedPreviewIndex + 1, true);
@@ -338,10 +383,10 @@ function initMap() {
         }
       },
       onSwipeDown: () => {
-        topStepperContainer.classList.add('is-expanded');
+        expandTopStepper();
       },
       onSwipeUp: () => {
-        topStepperContainer.classList.remove('is-expanded');
+        collapseTopStepper();
       }
     });
   }
@@ -349,7 +394,11 @@ function initMap() {
   // Toggle Bottom Card minimize/expand & Touch Sliders
   if (bottomCardDragHandle && bottomCard) {
     bottomCardDragHandle.addEventListener('click', () => {
-      bottomCard.classList.toggle('is-minimized');
+      if (bottomCard.classList.contains('is-minimized')) {
+        expandBottomCard();
+      } else {
+        minimizeBottomCard();
+      }
     });
   }
 
@@ -367,10 +416,10 @@ function initMap() {
         }
       },
       onSwipeUp: () => {
-        bottomCard.classList.remove('is-minimized');
+        expandBottomCard();
       },
       onSwipeDown: () => {
-        bottomCard.classList.add('is-minimized');
+        minimizeBottomCard();
       }
     });
   }
@@ -540,9 +589,9 @@ function initMap() {
         if (idx < orderedCheckpoints.length - 1) {
           const line = document.createElement('div');
           let lineClass = 'stepper-line';
-          if (idx < activeImmediateIndex) {
+          if (idx < activeImmediateIndex - 1) {
             lineClass += ' completed';
-          } else if (idx === activeImmediateIndex) {
+          } else if (idx === activeImmediateIndex - 1) {
             lineClass += ' half-completed';
           }
           line.className = lineClass;
@@ -692,9 +741,8 @@ function initMap() {
     if (targetKey) {
       const foundIdx = orderedCheckpoints.findIndex(c => c.key === targetKey || c.titulo === targetKey);
       if (foundIdx !== -1) {
-        activeImmediateIndex = foundIdx;
-        // If user hasn't explicitly previewed another checkpoint, sync preview to active
-        if (selectedPreviewIndex < activeImmediateIndex) {
+        if (activeImmediateIndex !== foundIdx) {
+          activeImmediateIndex = foundIdx;
           selectedPreviewIndex = activeImmediateIndex;
         }
       }

@@ -50,6 +50,8 @@ body.dark-mode {
 /* Base Sizing Set dynamically on HTML */
 html {
   font-size: 16px;
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
   /* Support scaling on very small viewports */
   @media (max-width: 320px) {
     font-size: 14px;
@@ -72,6 +74,8 @@ body {
   min-height: 100dvh; /* Dynamic viewport height to prevent browser toolbar overlap */
   transition: background-color 0.4s ease, color 0.4s ease;
   overflow-x: hidden;
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
 }
 
 /* Simulate mobile view on larger screens, relative on actual mobile */
@@ -387,40 +391,9 @@ body.dark-mode .switch-circle {
 }
 
 .stepper-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.625rem 0.875rem 0.25rem 0.875rem;
-}
-
-.stepper-title-box {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-family: var(--font-title);
-  font-weight: 800;
-  font-size: 0.9375rem;
-  color: var(--text-primary);
-  letter-spacing: 0.02rem;
-}
-
-.header-home-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  background: var(--bg-primary);
-  border: 0.0625rem solid var(--border-color);
-  color: var(--accent-color);
-  text-decoration: none;
-  transition: all 0.2s ease;
-}
-
-.header-home-btn:hover {
-  background: var(--accent-color);
-  color: #ffffff;
+  border-bottom: none;
+  background: transparent;
+  padding: 1rem 1.25rem 0.5rem 1.25rem;
 }
 
 /* Horizontal Track */
@@ -591,6 +564,7 @@ body.dark-mode .stepper-line.half-completed {
   max-height: 20rem;
   opacity: 1;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding: 0.5rem 0.875rem 0.875rem 0.875rem;
   border-top: 0.0625rem solid var(--border-color);
 }
