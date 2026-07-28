@@ -13,42 +13,79 @@
 </head>
 <body>
 
-  <div class="app-container">
-    <!-- Header -->
-    <header class="app-header">
-      <h1 class="app-title" id="appHeaderTitle">
-        <svg class="header-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-        </svg>
-        CA El Cantón Tornin
-      </h1>
-      <!-- Back button to return to dashboard -->
-      <a href="index.html" style="text-decoration: none;" id="btnHeaderBack" title="Volver al Dashboard">
-        <svg class="header-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-        </svg>
-      </a>
-    </header>
-
+  <div class="app-container map-mode">
     <!-- Map View Container -->
     <div class="map-view-container">
-      <!-- Floating Top Right Controls Stack -->
-      <div class="map-top-controls">
-        <button class="map-btn-top" id="btnOpenGoogleMaps">
-          <svg class="btn-icon maps-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+
+      <!-- Top Floating Stepper Component -->
+      <div class="top-stepper-container" id="topStepperContainer">
+        <!-- Header bar with Title and Home Link -->
+        <header class="stepper-header">
+          <div class="stepper-title-box">
+            <svg class="header-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            </svg>
+            <span class="stepper-title-text" id="appHeaderTitle">CA EL CANTÓN TORNIN</span>
+          </div>
+          <a href="index.html" class="header-home-btn" id="btnHeaderBack" title="Volver al Inicio">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+            </svg>
+          </a>
+        </header>
+
+        <!-- Horizontal Stepper Bubbles Track -->
+        <div class="stepper-track-wrapper">
+          <div class="stepper-track" id="stepperTrack">
+            <!-- Dynamically populated by JS: 1 - 2 - 3 - 4 ... -->
+          </div>
+        </div>
+
+        <!-- Expanded List Drawer (Shown when dragged down) -->
+        <div class="stepper-expanded-drawer" id="topStepperDrawer">
+          <div class="stepper-list-items" id="stepperListItems">
+            <!-- Dynamically populated by JS: List of checkpoints with title, image, indication & GPS distance -->
+          </div>
+        </div>
+
+        <!-- Drag handle bar at bottom to expand / collapse -->
+        <div class="stepper-drag-bar" id="topStepperDragHandle" title="Deslizar para desplegar / colapsar">
+          <div class="drag-pill"></div>
+        </div>
+      </div>
+
+      <!-- Floating Controls Stack on the Left (+, -, Layer) -->
+      <div class="map-controls-stack map-controls-left">
+        <button class="map-control-btn" id="btnZoomIn" title="Acercar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          Abrir en Google Maps
         </button>
-        <button class="map-btn-top" id="btnCompassHeading" title="Cambiar orientación">
-          <svg class="btn-icon compass-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button class="map-control-btn" id="btnZoomOut" title="Alejar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </button>
+        <button class="map-control-btn" id="btnToggleLayer" title="Cambiar capa (Satélite / Estándar)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+            <polyline points="2 17 12 22 22 17"/>
+            <polyline points="2 12 12 17 22 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Floating Controls Stack on the Right (Compass, Recenter GPS) -->
+      <div class="map-controls-stack map-controls-right">
+        <button class="map-control-btn" id="btnCompassHeading" title="Orientación brújula">
+          <svg class="compass-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"/>
             <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
           </svg>
-          <span id="compassBtnText">Norte</span>
         </button>
-        <button class="map-btn-top" id="btnRecenterGPS">
-          <svg class="btn-icon gps-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <button class="map-control-btn" id="btnRecenterGPS" title="Centrar GPS">
+          <svg class="gps-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <circle cx="12" cy="12" r="10"/>
             <circle cx="12" cy="12" r="3"/>
             <line x1="12" y1="1" x2="12" y2="4"/>
@@ -56,7 +93,6 @@
             <line x1="1" y1="12" x2="4" y2="12"/>
             <line x1="20" y1="12" x2="23" y2="12"/>
           </svg>
-          Centrar GPS
         </button>
       </div>
 
@@ -66,21 +102,70 @@
       <!-- Floating Tip Banner -->
       <div class="map-tip-banner" id="mapTipBanner">
         <span class="tip-icon">💡</span>
-        <span class="tip-text">Pulsa sobre los puntos de interés para obtener indicaciones de la ruta.</span>
+        <span class="tip-text">Pulsa sobre las etapas para previsualizar el recorrido.</span>
         <button class="tip-close-btn" id="btnCloseTip" aria-label="Cerrar tip">&times;</button>
       </div>
 
-      <!-- Floating HUD Card (Punto de control checkpoint details) -->
-      <div class="checkpoint-popup-hud" id="checkpointHUD">
-        <button class="hud-close-btn" id="btnCloseHUD" aria-label="Cerrar">&times;</button>
-        <div class="hud-img-container">
-          <img src="" alt="Punto de control" class="hud-image" id="hudImg">
+      <!-- Floating Bottom HUD Card (Checkpoint details with nav arrows) -->
+      <div class="bottom-checkpoint-card" id="checkpointHUD">
+        <!-- Drag Handle for sliding down to minimize -->
+        <div class="card-drag-bar" id="bottomCardDragHandle" title="Deslizar para colapsar / expandir">
+          <div class="drag-pill"></div>
         </div>
-        <div class="hud-text-container">
-          <h4 class="hud-title" id="hudTitle">Punto de Control</h4>
-          <p class="hud-desc" id="hudDesc">Descripción de la parada</p>
+
+        <div class="card-main-content">
+          <!-- Image preview container -->
+          <div class="card-img-container" id="hudImgContainer">
+            <img src="" alt="Checkpoint" class="card-image" id="hudImg">
+            <div class="card-distance-badge" id="hudDistanceBadge">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                <path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7z"/>
+              </svg>
+              <span id="hudDistanceText">-- m</span>
+            </div>
+          </div>
+
+          <!-- Card info & navigation buttons -->
+          <div class="card-body-container">
+            <div class="card-text-content">
+              <h3 class="card-title" id="hudTitle">Nombre Checkpoint</h3>
+              <p class="card-desc" id="hudDesc">Indicación de la etapa.</p>
+              <div class="card-min-distance-row" id="hudMinDistanceRow">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                  <path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7z"/>
+                </svg>
+                <span id="hudMinDistanceText">-- m</span>
+              </div>
+            </div>
+
+            <!-- Arrows to jump/preview next or previous checkpoint -->
+            <div class="card-nav-controls">
+              <button class="nav-arrow-btn" id="btnPrevCheckpoint" title="Checkpoint anterior">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+              </button>
+              <button class="nav-arrow-btn" id="btnNextCheckpoint" title="Checkpoint siguiente">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
+
+        <!-- Horizontal Divider line -->
+        <div class="card-divider"></div>
+
+        <!-- Google Maps Button (Always Visible) -->
+        <button class="btn-open-google-maps" id="btnOpenGoogleMaps">
+          <svg class="maps-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+          </svg>
+          <span>Abrir en Google Maps</span>
+        </button>
       </div>
+
     </div>
   </div>
 
@@ -92,3 +177,4 @@
   <script src="js/main.js"></script>
 </body>
 </html>
+

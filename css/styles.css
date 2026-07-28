@@ -357,302 +357,595 @@ body.dark-mode .switch-circle {
 }
 
 #map {
-  flex: 1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   width: 100%;
   height: 100%;
   z-index: 10;
 }
 
-/* Floating HUD Card representing control checkpoint */
-.checkpoint-popup-hud {
+/* Top Stepper Component - Flush to top edge */
+.top-stepper-container {
   position: absolute;
-  bottom: 1.5rem;
-  left: 1rem;
-  right: 1rem;
-  z-index: 50;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: 100%;
+  z-index: 1000;
   background-color: var(--card-bg);
   backdrop-filter: blur(1rem);
   -webkit-backdrop-filter: blur(1rem);
-  border: 0.125rem solid var(--accent-color);
-  border-radius: var(--radius-md);
-  padding: 1rem;
-  box-shadow: var(--shadow-md);
-  display: none; /* Controlled via JS */
-  flex-direction: column;
-  gap: 0.75rem;
-  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  transition: background-color 0.4s ease, border-color 0.4s ease;
-  max-height: 50dvh;
+  border-bottom: 0.0625rem solid var(--border-color);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.hud-close-btn {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  background: rgba(15, 23, 42, 0.6);
-  border: none;
-  color: #ffffff;
-  font-size: 1.25rem;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 50%;
-  cursor: pointer;
+.stepper-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 0.875rem 0.25rem 0.875rem;
+}
+
+.stepper-title-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-title);
+  font-weight: 800;
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+  letter-spacing: 0.02rem;
+}
+
+.header-home-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 60;
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--bg-primary);
+  border: 0.0625rem solid var(--border-color);
+  color: var(--accent-color);
+  text-decoration: none;
+  transition: all 0.2s ease;
 }
 
-.hud-close-btn:hover {
-  background-color: rgba(15, 23, 42, 0.9);
-  transform: scale(1.1);
+.header-home-btn:hover {
+  background: var(--accent-color);
+  color: #ffffff;
 }
 
-
-@keyframes slideUp {
-  from {
-    transform: translateY(1.25rem);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+/* Horizontal Track */
+.stepper-track-wrapper {
+  padding: 0.375rem 0.75rem 1.25rem 0.75rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.stepper-track-wrapper::-webkit-scrollbar {
+  display: none;
 }
 
-.hud-img-container {
-  width: 100%;
-  height: 28dvh;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
+.stepper-track {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   position: relative;
-  background-color: var(--bg-secondary);
+  min-width: 100%;
+  padding: 0.25rem 0.25rem;
 }
 
-.hud-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.5s ease;
-}
-
-.hud-img-container:hover .hud-image {
-  transform: scale(1.05);
-}
-
-.hud-text-container {
+/* Step Bubble */
+.step-bubble-item {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  overflow-y: auto;
-  flex: 1;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  cursor: pointer;
+  user-select: none;
 }
 
-.hud-title {
+.step-bubble {
+  width: 2.125rem;
+  height: 2.125rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-family: var(--font-title);
-  font-size: 0.9375rem; /* 15px */
   font-weight: 700;
+  font-size: 0.875rem;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 0.125rem solid transparent;
+  position: relative;
+}
+
+/* 1. Passed Checkpoints: Muted Light Blue */
+.step-bubble.passed {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+  border-color: #93c5fd;
+}
+body.dark-mode .step-bubble.passed {
+  background-color: rgba(59, 130, 246, 0.25);
+  color: #93c5fd;
+  border-color: rgba(147, 197, 253, 0.4);
+}
+
+/* 2. Immediate Next Checkpoint: Vibrant Blue */
+.step-bubble.current {
+  background-color: #0ea5e9;
+  color: #ffffff;
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 0.25rem rgba(14, 165, 233, 0.25);
+  transform: scale(1.15);
+}
+
+/* 3. Upcoming Checkpoints: Gray */
+.step-bubble.future {
+  background-color: #e2e8f0;
+  color: #64748b;
+  border-color: #cbd5e1;
+}
+body.dark-mode .step-bubble.future {
+  background-color: #334155;
+  color: #94a3b8;
+  border-color: #475569;
+}
+
+/* 4. Preview / Jump Checkpoint: Purple ring & Purple Eye badge */
+.step-bubble.preview-selected {
+  border-color: #a855f7 !important;
+  box-shadow: 0 0 0 0.2rem rgba(168, 85, 247, 0.35) !important;
+  transform: scale(1.12);
+}
+
+.bubble-eye-badge {
+  position: absolute;
+  bottom: -0.65rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #a855f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0.125rem 0.25rem rgba(168, 85, 247, 0.45);
+  border: 0.0625rem solid #e9d5ff;
+  z-index: 5;
+}
+
+.bubble-eye-badge svg.material-eye-icon {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+/* Connecting Line between bubbles */
+.stepper-line {
+  flex: 1;
+  height: 0.1875rem;
+  background-color: #cbd5e1;
+  margin: 0 0.25rem;
+  position: relative;
+  z-index: 1;
+  transition: background-color 0.3s ease;
+}
+
+.stepper-line.completed {
+  background-color: #38bdf8;
+}
+
+/* Drag Handle Bar */
+.stepper-drag-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.25rem 0 0.375rem 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.drag-pill {
+  width: 2.5rem;
+  height: 0.25rem;
+  background-color: var(--text-secondary);
+  opacity: 0.4;
+  border-radius: 9999px;
+  transition: opacity 0.2s ease, width 0.2s ease;
+}
+
+.stepper-drag-bar:hover .drag-pill {
+  opacity: 0.8;
+  width: 3rem;
+}
+
+/* Expanded List Drawer */
+.stepper-expanded-drawer {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+.top-stepper-container.is-expanded .stepper-expanded-drawer {
+  max-height: 20rem;
+  opacity: 1;
+  overflow-y: auto;
+  padding: 0.5rem 0.875rem 0.875rem 0.875rem;
+  border-top: 0.0625rem solid var(--border-color);
+}
+
+.stepper-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.drawer-checkpoint-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  border: 0.0625rem solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.drawer-checkpoint-item:hover, .drawer-checkpoint-item.active-selected {
+  border-color: var(--accent-color);
+  background: var(--accent-soft);
+}
+
+.drawer-item-badge {
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  flex-shrink: 0;
+}
+
+.drawer-item-badge.passed {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.drawer-item-badge.current {
+  background: #0ea5e9;
+  color: #ffffff;
+}
+
+.drawer-item-badge.future {
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+.drawer-item-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.drawer-item-title {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 0.8125rem;
   color: var(--text-primary);
 }
 
-.hud-desc {
-  font-size: 0.8125rem; /* 13px */
+.drawer-item-desc {
+  font-size: 0.75rem;
   color: var(--text-secondary);
-  line-height: 1.4;
+  line-height: 1.25;
 }
 
-/* Map Action Buttons */
-.map-actions {
-  position: absolute;
-  bottom: 1.5rem;
-  left: 1rem;
-  right: 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  z-index: 50;
-  pointer-events: none;
+.drawer-item-thumb {
+  width: 3.25rem;
+  height: 2.25rem;
+  border-radius: 0.375rem;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 
-.map-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  border-radius: 9999px;
-  font-size: 0.875rem; /* 14px */
+.drawer-item-distance {
+  font-size: 0.75rem;
   font-weight: 700;
-  cursor: pointer;
-  box-shadow: var(--shadow-md);
-  border: 0.0625rem solid var(--border-color);
-  pointer-events: auto;
-  transition: all 0.25s ease;
-  min-height: 2.75rem; /* 44px hit target */
+  color: var(--accent-color);
+  white-space: nowrap;
 }
 
-.map-btn-back {
-  background-color: var(--text-primary);
-  color: var(--bg-primary);
-}
-
-.map-btn-back:hover {
-  transform: translateX(-0.125rem);
-}
-
-.map-btn-gps {
-  background-color: #ffffff;
-  color: #0f172a;
-}
-
-body.dark-mode .map-btn-gps {
-  background-color: #0f172a;
-  color: #ffffff;
-  border-color: #334155;
-}
-
-.map-btn-gps:hover {
-  transform: translateY(-0.125rem);
-}
-
-/* Stacked Floating Top Controls on the right */
-.map-top-controls {
+/* Floating Controls Stack */
+.map-controls-stack {
   position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  z-index: 100;
+  top: 9.5rem;
+  z-index: 95;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  pointer-events: none;
 }
 
-.map-btn-top {
-  pointer-events: auto;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.125rem;
+.map-controls-left {
+  left: 0.75rem;
+}
+
+.map-controls-right {
+  right: 0.75rem;
+}
+
+.map-control-btn {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
   background-color: var(--card-bg);
   backdrop-filter: blur(0.75rem);
   -webkit-backdrop-filter: blur(0.75rem);
+  border: 0.0625rem solid var(--border-color);
   color: var(--text-primary);
-  border: 0.09375rem solid var(--border-color);
-  border-radius: 9999px;
-  font-family: var(--font-body);
-  font-size: 0.8125rem; /* 13px */
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  box-shadow: var(--shadow-md);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  min-height: 2.5rem;
-  width: max-content;
-  align-self: flex-end;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
 }
 
-#btnOpenGoogleMaps {
-  border-color: var(--accent-color);
+.map-control-btn svg {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
-body.dark-mode .map-btn-top {
-  border-color: #334155;
-}
-
-body.dark-mode #btnOpenGoogleMaps {
-  border-color: var(--accent-color);
-}
-
-.map-btn-top:hover, .map-btn-top:active {
+.map-control-btn:hover {
   background-color: var(--accent-color);
   color: #ffffff;
   border-color: var(--accent-color);
-  transform: translateY(-0.125rem);
+  transform: scale(1.08);
 }
 
-.map-btn-top:hover .maps-icon {
-  fill: #ffffff;
-}
-
-.map-btn-top:hover .gps-icon {
-  stroke: #ffffff;
-}
-
-/* Icons styling inside top buttons */
-.btn-icon {
-  width: 1.125rem;
-  height: 1.125rem;
-  flex-shrink: 0;
-  transition: fill 0.2s ease, stroke 0.2s ease;
-}
-
-.maps-icon {
-  fill: var(--accent-color);
-}
-
-.gps-icon {
-  stroke: var(--text-primary);
-}
-
-.compass-icon {
-  stroke: var(--accent-color);
-  transition: transform 0.3s ease;
-}
-
-.map-btn-top.active-heading {
+.map-control-btn.active-heading {
   background-color: var(--accent-soft);
   border-color: var(--accent-color);
   color: var(--accent-color);
 }
 
-.map-btn-top.active-heading .compass-icon {
-  stroke: var(--accent-color);
+/* Bottom Sheet Component - Flush to bottom edge */
+.bottom-checkpoint-card {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: 100%;
+  z-index: 1000;
+  background-color: var(--card-bg);
+  backdrop-filter: blur(1rem);
+  -webkit-backdrop-filter: blur(1rem);
+  border-top: 0.0625rem solid var(--border-color);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: var(--shadow-md);
+  padding: 0.625rem 1rem 1rem 1rem;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.map-btn-top:hover .compass-icon {
-  stroke: #ffffff;
+.card-drag-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.125rem 0;
+  cursor: pointer;
 }
 
-body.dark-mode .gps-icon {
-  stroke: var(--text-primary);
+.card-main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  transition: all 0.3s ease;
 }
 
-/* Custom leaflet marker styling - Relative sizing */
-.leaflet-popup-content-wrapper {
-  background-color: var(--card-bg) !important;
-  backdrop-filter: blur(0.75rem) !important;
-  -webkit-backdrop-filter: blur(0.75rem) !important;
-  color: var(--text-primary) !important;
-  border-radius: var(--radius-md) !important;
-  border: 0.0625rem solid var(--border-color) !important;
-  box-shadow: var(--shadow-md) !important;
+.card-img-container {
+  width: 100%;
+  height: 15.5rem;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  position: relative;
+  background-color: var(--bg-secondary);
+  transition: all 0.3s ease;
 }
 
-.leaflet-popup-tip {
-  background-color: var(--card-bg) !important;
-  border: 0.0625rem solid var(--border-color) !important;
+.card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.leaflet-popup-content {
-  font-family: var(--font-body) !important;
-  margin: 0.75rem 1rem !important;
-  line-height: 1.4 !important;
+.card-distance-badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(0.5rem);
+  color: #ffffff;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
-.leaflet-popup-content h4 {
+.card-body-container {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.625rem;
+}
+
+.card-text-content {
+  flex: 1;
+}
+
+.card-title {
   font-family: var(--font-title);
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+}
+
+.card-desc {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.card-nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.nav-arrow-btn {
+  width: 2.125rem;
+  height: 2.125rem;
+  border-radius: 50%;
+  background: var(--bg-primary);
+  border: 0.0625rem solid var(--border-color);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.nav-arrow-btn svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.nav-arrow-btn:hover {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+  transform: scale(1.1);
+}
+
+.card-min-distance-row {
+  display: none;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+.card-divider {
+  height: 0.0625rem;
+  background-color: var(--border-color);
+  width: 100%;
+  margin: 0.375rem 0 0.125rem 0;
+  opacity: 0.8;
+}
+
+/* Always Visible Google Maps Button with Clean Style */
+.btn-open-google-maps {
+  width: 100%;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border-radius: 9999px;
+  border: 0.09375rem solid var(--accent-color);
+  background-color: var(--bg-primary);
+  color: var(--accent-color);
+  font-family: var(--font-body);
   font-weight: 700;
   font-size: 0.875rem;
-  margin-bottom: 0.375rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: var(--shadow-sm);
 }
 
-.leaflet-popup-content p {
+.btn-open-google-maps .maps-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  fill: var(--accent-color);
+  transition: fill 0.2s ease;
+}
+
+.btn-open-google-maps:hover {
+  background-color: var(--accent-color);
+  color: #ffffff;
+}
+
+.btn-open-google-maps:hover .maps-icon {
+  fill: #ffffff;
+}
+
+/* Minimized Compact Horizontal Layout matching exact mockup picture */
+.bottom-checkpoint-card.is-minimized {
+  padding: 0.5rem 0.75rem 0.625rem 0.75rem;
+}
+
+.bottom-checkpoint-card.is-minimized .card-main-content {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.bottom-checkpoint-card.is-minimized .card-img-container {
+  width: 6.5rem;
+  height: 4.75rem;
+  border-radius: 0.875rem;
+  flex-shrink: 0;
+  margin: 0;
+  opacity: 1;
+}
+
+.bottom-checkpoint-card.is-minimized .card-distance-badge {
+  display: none;
+}
+
+.bottom-checkpoint-card.is-minimized .card-body-container {
+  flex: 1;
+  gap: 0.5rem;
+}
+
+.bottom-checkpoint-card.is-minimized .card-title {
+  font-size: 0.9375rem;
+  margin-bottom: 0.1rem;
+}
+
+.bottom-checkpoint-card.is-minimized .card-desc {
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  line-height: 1.25;
 }
 
-/* Beautiful Custom Leaflet Marker Icons - Sized in relative rem */
+.bottom-checkpoint-card.is-minimized .card-min-distance-row {
+  display: flex;
+}
+
+/* Custom leaflet marker styling - Teardrop location pin matching exact design */
 .custom-div-icon {
   background: none;
   border: none;
@@ -663,46 +956,60 @@ body.dark-mode .gps-icon {
 
 .marker-pin-wrapper {
   position: relative;
-  width: 2rem;
-  height: 2rem;
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: 50% 50% 50% 0;
-  background: var(--accent-color);
+  background: #009be5;
   transform: rotate(-45deg);
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 0.25rem 0.625rem rgba(0,0,0,0.25);
-  border: 0.125rem solid #ffffff;
-  transition: transform 0.25s ease;
-}
-
-.custom-div-icon:hover .marker-pin-wrapper {
-  transform: rotate(-45deg) scale(1.15);
+  border: 0.1875rem solid #ffffff;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .marker-inner-content {
   transform: rotate(45deg);
-  font-size: 0.75rem;
+  font-family: var(--font-title);
+  font-size: 0.9375rem;
   font-weight: 800;
   color: #ffffff;
   text-align: center;
+  line-height: 1;
 }
 
-/* Special styling for Checkpoint Marker */
-.custom-div-icon.checkpoint-icon .marker-pin-wrapper {
-  background: #06b6d4;
-  animation: pulseCheckpoint 2s infinite;
+.marker-pin-wrapper.passed-marker {
+  background: #7dd3fc !important;
+  opacity: 0.85;
 }
 
-@keyframes pulseCheckpoint {
+.marker-pin-wrapper.current-marker {
+  background: #009be5 !important;
+  animation: pulseCurrent 2s infinite;
+}
+
+.marker-pin-wrapper.future-marker {
+  background: #94a3b8 !important;
+}
+
+.marker-pin-wrapper.preview-marker {
+  background: #a855f7 !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 0 0.35rem rgba(168, 85, 247, 0.45) !important;
+  transform: rotate(-45deg) scale(1.25) !important;
+  z-index: 9999 !important;
+}
+
+@keyframes pulseCurrent {
   0% {
-    box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.6);
+    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.6);
   }
   70% {
-    box-shadow: 0 0 0 0.625rem rgba(6, 182, 212, 0);
+    box-shadow: 0 0 0 0.625rem rgba(14, 165, 233, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(6, 182, 212, 0);
+    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0);
   }
 }
 
@@ -789,72 +1096,108 @@ body.dark-mode .elegant-modal-overlay {
 /* Map Tip Banner */
 .map-tip-banner {
   position: absolute;
-  top: 3.5rem;
+  top: 5.75rem;
   left: 1rem;
   right: 1rem;
-  z-index: 100;
+  z-index: 95;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.625rem 0.875rem;
+  padding: 0.5rem 0.75rem;
   background-color: var(--card-bg);
   backdrop-filter: blur(0.75rem);
   -webkit-backdrop-filter: blur(0.75rem);
-  color: var(--text-primary);
   border: 0.0625rem solid var(--border-color);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-sm);
   font-size: 0.75rem;
-  font-weight: 500;
-  line-height: 1.3;
-  pointer-events: auto;
-  animation: slideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  transition: all 0.3s ease;
-}
-
-.map-tip-banner .tip-icon {
-  font-size: 1rem;
-  flex-shrink: 0;
-}
-
-.map-tip-banner .tip-text {
-  flex: 1;
+  color: var(--text-secondary);
 }
 
 .map-tip-banner .tip-close-btn {
   background: none;
   border: none;
   color: var(--text-secondary);
-  font-size: 1.125rem;
+  font-size: 1rem;
   cursor: pointer;
-  padding: 0 0.25rem;
-  line-height: 1;
+  margin-left: auto;
+}
+
+/* ==========================================================================
+   Google Maps Style User Location Marker & Heading Cone
+   ========================================================================== */
+.google-user-location-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.google-user-location-container {
+  position: relative;
+  width: 5rem; /* 80px */
+  height: 5rem; /* 80px */
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s ease;
 }
 
-.map-tip-banner .tip-close-btn:hover {
-  color: var(--text-primary);
+.user-heading-cone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: center center;
+  transition: transform 0.15s ease-out;
+  display: none;
+  pointer-events: none;
+  z-index: 1;
 }
 
-@keyframes slideDown {
-  from {
-    transform: translateY(-1rem);
+.heading-cone-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.user-accuracy-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1.25rem; /* 20px */
+  height: 1.25rem;
+  border-radius: 50%;
+  background-color: rgba(66, 133, 244, 0.35);
+  transform: translate(-50%, -50%);
+  animation: googleGpsPulse 2s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.user-blue-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1.125rem; /* 18px */
+  height: 1.125rem;
+  background-color: #4285f4;
+  border: 0.1875rem solid #ffffff; /* 3px crisp white border */
+  border-radius: 50%;
+  box-shadow: 0 0.125rem 0.375rem rgba(0, 0, 0, 0.35), 0 0 0 0.0625rem rgba(66, 133, 244, 0.3);
+  transform: translate(-50%, -50%);
+  z-index: 3;
+}
+
+@keyframes googleGpsPulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.8;
+  }
+  70% {
+    transform: translate(-50%, -50%) scale(2.8);
     opacity: 0;
   }
-  to {
-    transform: translateY(0);
-    opacity: 1;
+  100% {
+    transform: translate(-50%, -50%) scale(2.8);
+    opacity: 0;
   }
 }
-
-.btn-admin-link {
-  transition: all 0.3s ease;
-}
-.btn-admin-link:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.25);
-}
-
